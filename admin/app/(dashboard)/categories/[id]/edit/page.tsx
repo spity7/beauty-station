@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CategoryCatalogForm } from "@/components/catalog/catalog-forms";
 import { PageHeader } from "@/components/layout/page-header";
+import { fetchAssignedProductsForCategory } from "@/lib/assigned-products";
 import { getCategoryApi } from "@platform/api-client";
 import { getAdminSiteConfig } from "@/lib/site";
 
@@ -19,8 +20,16 @@ export default async function EditCategoryPage({
   const { id } = await params;
 
   let category;
+  let assignedProducts: Awaited<
+    ReturnType<typeof fetchAssignedProductsForCategory>
+  >["products"] = [];
+
   try {
     category = await getCategoryApi(id);
+    if (category.productCount > 0) {
+      ({ products: assignedProducts } =
+        await fetchAssignedProductsForCategory(id));
+    }
   } catch {
     notFound();
   }
@@ -32,7 +41,11 @@ export default async function EditCategoryPage({
         eyebrow="Catalog"
         title="Edit Category"
       />
-      <CategoryCatalogForm initial={category} mode="edit" />
+      <CategoryCatalogForm
+        assignedProducts={assignedProducts}
+        initial={category}
+        mode="edit"
+      />
     </>
   );
 }

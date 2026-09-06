@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   type EntityColumn,
   EntityTable,
@@ -20,6 +21,8 @@ import type {
   Customer,
 } from "@/data/admin/catalog";
 import { cn } from "@/utils/cn";
+import { finishCatalogDelete } from "@/lib/catalog-feedback";
+import { useToast } from "@/providers/toast-provider";
 import {
   deleteBrandApi,
   deleteCategoryApi,
@@ -44,6 +47,8 @@ export function CategoryListTable({
 }: {
   categories: Array<Category & { id: string }>;
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const rows: CategoryRow[] = categories;
   const columns: EntityColumn<CategoryRow>[] = [
     {
@@ -65,18 +70,10 @@ export function CategoryListTable({
             >
               {category.name}
             </Link>
-            <p className="mt-1 text-[13px] text-ink-400">/{category.slug}</p>
           </div>
         </div>
       ),
       sortValue: (category) => category.name,
-    },
-    {
-      hideable: true,
-      key: "slug",
-      label: "Slug",
-      render: (category) => category.slug,
-      sortValue: (category) => category.slug,
     },
     {
       hideable: true,
@@ -102,10 +99,16 @@ export function CategoryListTable({
   return (
     <EntityTable
       columns={columns}
-      deleteMessage="This category will be permanently removed from your catalog. This action cannot be undone."
       editHref={(row) => categoryEditPath(row.id)}
+      getRowLabel={(row) => row.name}
       onDelete={async (ids) => {
         await Promise.all(ids.map((id) => deleteCategoryApi(id)));
+        await finishCatalogDelete({
+          count: ids.length,
+          entity: "category",
+          router,
+          showToast,
+        });
       }}
       filterOptions={[
         { label: "All", match: () => true, value: "all" },
@@ -123,7 +126,7 @@ export function CategoryListTable({
       items={rows}
       searchLabel="Search categories"
       searchPlaceholder="Search categories"
-      searchText={(category) => `${category.name} ${category.slug}`}
+      searchText={(category) => category.name}
       singularName="category"
     />
   );
@@ -134,6 +137,8 @@ export function BrandListTable({
 }: {
   brands: Array<Brand & { id: string }>;
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const rows: BrandRow[] = brands;
   const columns: EntityColumn<BrandRow>[] = [
     {
@@ -161,13 +166,6 @@ export function BrandListTable({
         </div>
       ),
       sortValue: (brand) => brand.name,
-    },
-    {
-      hideable: true,
-      key: "slug",
-      label: "Slug",
-      render: (brand) => brand.slug,
-      sortValue: (brand) => brand.slug,
     },
     {
       hideable: true,
@@ -200,10 +198,16 @@ export function BrandListTable({
   return (
     <EntityTable
       columns={columns}
-      deleteMessage="This brand will be permanently removed from your catalog. This action cannot be undone."
       editHref={(row) => brandEditPath(row.id)}
+      getRowLabel={(row) => row.name}
       onDelete={async (ids) => {
         await Promise.all(ids.map((id) => deleteBrandApi(id)));
+        await finishCatalogDelete({
+          count: ids.length,
+          entity: "brand",
+          router,
+          showToast,
+        });
       }}
       filterOptions={[
         { label: "All", match: () => true, value: "all" },
@@ -226,7 +230,7 @@ export function BrandListTable({
       items={rows}
       searchLabel="Search brands"
       searchPlaceholder="Search brands"
-      searchText={(brand) => `${brand.name} ${brand.slug} ${brand.website}`}
+      searchText={(brand) => `${brand.name} ${brand.website}`}
       singularName="brand"
     />
   );
@@ -237,6 +241,8 @@ export function AttributeListTable({
 }: {
   attributes: AttributeRow[];
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const rows = attributes;
   const columns: EntityColumn<AttributeRow>[] = [
     {
@@ -288,10 +294,16 @@ export function AttributeListTable({
   return (
     <EntityTable
       columns={columns}
-      deleteMessage="This attribute will be permanently removed from your catalog. This action cannot be undone."
       editHref={(row) => attributeEditPath(row.id)}
+      getRowLabel={(row) => row.name}
       onDelete={async (ids) => {
         await Promise.all(ids.map((id) => deleteAttributeApi(id)));
+        await finishCatalogDelete({
+          count: ids.length,
+          entity: "attribute",
+          router,
+          showToast,
+        });
       }}
       filterOptions={[
         { label: "All types", match: () => true, value: "all" },

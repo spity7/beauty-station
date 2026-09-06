@@ -14,7 +14,12 @@ export const metadata: Metadata = {
   title: `Add Product | ${site.name} Admin`,
 };
 
-export default async function AddProductPage() {
+export default async function AddProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ brandId?: string; categoryId?: string }>;
+}) {
+  const { brandId, categoryId } = await searchParams;
   const [categoriesRes, brandsRes, attributesRes] = await Promise.all([
     fetchCategories({ limit: 100 }),
     fetchBrands({ limit: 100 }),
@@ -44,6 +49,8 @@ export default async function AddProductPage() {
         attributes={attributes}
         brands={brands}
         categories={categories}
+        defaultBrandId={brandId}
+        defaultCategoryId={categoryId}
         mode="add"
       />
     </>

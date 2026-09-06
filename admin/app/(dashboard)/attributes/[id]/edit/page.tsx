@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AttributeCatalogForm } from "@/components/catalog/catalog-forms";
 import { PageHeader } from "@/components/layout/page-header";
+import { fetchAssignedProductsForAttribute } from "@/lib/assigned-products";
 import { getAttributeApi } from "@platform/api-client";
 import { getAdminSiteConfig } from "@/lib/site";
 
@@ -19,8 +20,17 @@ export default async function EditAttributePage({
   const { id } = await params;
 
   let attribute;
+  let assignedProducts: Awaited<
+    ReturnType<typeof fetchAssignedProductsForAttribute>
+  >["products"] = [];
+
   try {
     attribute = await getAttributeApi(id);
+    if (attribute.productCount > 0) {
+      ({ products: assignedProducts } = await fetchAssignedProductsForAttribute(
+        attribute.slug
+      ));
+    }
   } catch {
     notFound();
   }
@@ -32,7 +42,11 @@ export default async function EditAttributePage({
         eyebrow="Catalog"
         title="Edit Attribute"
       />
-      <AttributeCatalogForm initial={attribute} mode="edit" />
+      <AttributeCatalogForm
+        assignedProducts={assignedProducts}
+        initial={attribute}
+        mode="edit"
+      />
     </>
   );
 }

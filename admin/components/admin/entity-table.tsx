@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/layout/icon";
-import { AppSelect } from "@/components/ui/app-select";
+import {
+  ListClearFiltersButton,
+  ListFilterSelect,
+  ListSearchField,
+} from "@/components/ui/list-filter-controls";
+import { ListDeleteConfirmDialog } from "@/components/ui/list-delete-confirm-dialog";
 import { cn } from "@/utils/cn";
 
 export type EntityColumn<T> = {
@@ -22,9 +27,11 @@ type FilterOption<T> = {
 
 type EntityTableProps<T extends { id: string }> = {
   columns: EntityColumn<T>[];
-  deleteMessage: string;
+  deleteMessage?: string;
   editHref: string | ((row: T) => string);
+  enableColumnToggle?: boolean;
   filterOptions?: FilterOption<T>[];
+  getRowLabel?: (row: T) => string;
   items: T[];
   onDelete?: (ids: string[]) => Promise<void>;
   searchLabel: string;
@@ -42,7 +49,9 @@ export function EntityTable<T extends { id: string }>({
   columns,
   deleteMessage,
   editHref,
+  enableColumnToggle = false,
   filterOptions,
+  getRowLabel,
   items,
   onDelete,
   searchLabel,
@@ -67,6 +76,12 @@ export function EntityTable<T extends { id: string }>({
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(hideableColumns.map((column) => column.key))
   );
+
+  const defaultFilterValue = filterOptions?.[0]?.value ?? "all";
+
+  useEffect(() => {
+    setRows(items);
+  }, [items]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -166,85 +181,104 @@ export function EntityTable<T extends { id: string }>({
     return typeof editHref === "function" ? editHref(row) : editHref;
   }
 
+  function isColumnHidden(column: EntityColumn<T>) {
+    return (
+      enableColumnToggle &&
+      column.hideable === true &&
+      !visibleColumns.has(column.key)
+    );
+  }
+
+  const hasActiveFilters =
+    query.trim().length > 0 || filter !== defaultFilterValue;
+
+  function clearAllFilters() {
+    setQuery("");
+    setFilter(defaultFilterValue);
+  }
+
+  const selectedLabels = rows
+    .filter((row) => selected.has(row.id))
+    .map((row) => getRowLabel?.(row) ?? row.id);
+
   return (
     <section className="rounded-card border border-surface-line bg-surface-card p-6 shadow-card">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <label className="relative block min-w-[200px] flex-1">
-          <span className="sr-only">{searchLabel}</span>
-          <Icon
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
-            name="search"
-          />
-          <input
-            className="h-11 w-full rounded-base border border-surface-line bg-surface-body pl-11 pr-4 text-[14px] focus:border-brand-600"
-            onChange={(event) => setQuery(event.target.value)}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ListSearchField
+            label={searchLabel}
+            onChange={setQuery}
             placeholder={searchPlaceholder}
-            type="search"
             value={query}
           />
-        </label>
-        {filterOptions ? (
-          <AppSelect
-            className="w-[180px]"
-            onValueChange={setFilter}
-            options={filterOptions}
-            size="lg"
-            value={filter}
+          {filterOptions ? (
+            <ListFilterSelect
+              className="w-[180px]"
+              defaultValue={defaultFilterValue}
+              onValueChange={setFilter}
+              options={filterOptions}
+              size="lg"
+              value={filter}
+            />
+          ) : null}
+          <ListClearFiltersButton
+            active={hasActiveFilters}
+            onClear={clearAllFilters}
           />
-        ) : null}
-        {hideableColumns.length ? (
-          <div className="relative">
-            <button
-              aria-expanded={columnsOpen}
-              aria-haspopup="true"
-              className="inline-flex h-11 items-center gap-2 rounded-base border border-surface-line bg-surface-card px-4 text-[14px] font-semibold text-ink-700 transition-colors hover:bg-surface-muted"
-              onClick={() => setColumnsOpen((current) => !current)}
-              type="button"
-            >
-              <Icon className="h-4 w-4" name="sliders-horizontal" />
-              Columns
-            </button>
-            {columnsOpen ? (
-              <div className="absolute right-0 z-20 mt-2 w-48 rounded-base border border-surface-line bg-surface-card p-2 shadow-card">
-                <p className="px-2 py-1 text-[12px] font-semibold uppercase text-ink-400">
-                  Toggle columns
-                </p>
-                {hideableColumns.map((column) => (
-                  <label
-                    className="flex items-center gap-2 rounded px-2 py-1.5 text-[14px] text-ink-700 hover:bg-surface-muted"
-                    key={column.key}
-                  >
-                    <input
-                      aria-label={`Toggle ${column.label} column`}
-                      checked={visibleColumns.has(column.key)}
-                      onChange={(event) => {
-                        setVisibleColumns((current) => {
-                          const next = new Set(current);
-                          if (event.target.checked) {
-                            next.add(column.key);
-                          } else {
-                            next.delete(column.key);
-                          }
-                          return next;
-                        });
-                      }}
-                      type="checkbox"
-                    />{" "}
-                    {column.label}
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+          {enableColumnToggle && hideableColumns.length ? (
+            <div className="relative">
+              <button
+                aria-expanded={columnsOpen}
+                aria-haspopup="true"
+                className="inline-flex h-11 items-center gap-2 rounded-base border border-surface-line bg-surface-card px-4 text-[14px] font-semibold text-ink-700 transition-colors hover:bg-surface-muted"
+                onClick={() => setColumnsOpen((current) => !current)}
+                type="button"
+              >
+                <Icon className="h-4 w-4" name="sliders-horizontal" />
+                Columns
+              </button>
+              {columnsOpen ? (
+                <div className="absolute right-0 z-20 mt-2 w-48 rounded-base border border-surface-line bg-surface-card p-2 shadow-card">
+                  <p className="px-2 py-1 text-[12px] font-semibold uppercase text-ink-400">
+                    Toggle columns
+                  </p>
+                  {hideableColumns.map((column) => (
+                    <label
+                      className="flex items-center gap-2 rounded px-2 py-1.5 text-[14px] text-ink-700 hover:bg-surface-muted"
+                      key={column.key}
+                    >
+                      <input
+                        aria-label={`Toggle ${column.label} column`}
+                        checked={visibleColumns.has(column.key)}
+                        onChange={(event) => {
+                          setVisibleColumns((current) => {
+                            const next = new Set(current);
+                            if (event.target.checked) {
+                              next.add(column.key);
+                            } else {
+                              next.delete(column.key);
+                            }
+                            return next;
+                          });
+                        }}
+                        type="checkbox"
+                      />{" "}
+                      {column.label}
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-base bg-danger-500 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-base bg-danger-500 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={selected.size === 0}
           onClick={() => setConfirmOpen(true)}
           type="button"
         >
           <Icon className="h-4 w-4" name="trash-2" />
-          Delete Selected (<span>{selected.size}</span>)
+          Delete (<span>{selected.size}</span>)
         </button>
       </div>
 
@@ -262,8 +296,7 @@ export function EntityTable<T extends { id: string }>({
                 />
               </th>
               {columns.map((column) => {
-                const hidden =
-                  column.hideable && !visibleColumns.has(column.key);
+                const hidden = isColumnHidden(column);
                 return (
                   <th
                     className={cn(
@@ -308,8 +341,7 @@ export function EntityTable<T extends { id: string }>({
                   />
                 </td>
                 {columns.map((column) => {
-                  const hidden =
-                    column.hideable && !visibleColumns.has(column.key);
+                  const hidden = isColumnHidden(column);
                   return (
                     <td
                       className={cn(
@@ -386,57 +418,17 @@ export function EntityTable<T extends { id: string }>({
       </div>
 
       {confirmOpen ? (
-        <div
-          aria-labelledby="confirm-delete-title"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-        >
-          <div className="absolute inset-0 bg-ink-900/50" />
-          <div className="relative w-full max-w-md rounded-card bg-surface-card p-6 text-center shadow-lift">
-            <button
-              aria-label="Close"
-              className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-base text-ink-400 transition-colors hover:bg-surface-muted hover:text-ink-700"
-              onClick={() => setConfirmOpen(false)}
-              type="button"
-            >
-              <Icon className="h-4 w-4" name="x" />
-            </button>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-danger-50 text-danger-500">
-              <Icon className="h-6 w-6" name="trash-2" />
-            </div>
-            <h3
-              className="text-[20px] font-semibold text-ink-900"
-              id="confirm-delete-title"
-            >
-              Are you sure?
-            </h3>
-            <p className="mx-auto mt-2 max-w-xs text-[14px] text-ink-500">
-              {deleteMessage}
-            </p>
-            {deleteError ? (
-              <p className="mt-2 text-[14px] text-danger-600">{deleteError}</p>
-            ) : null}
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                className="h-11 min-w-[88px] rounded-base border border-surface-line px-5 text-[14px] font-semibold text-ink-700 transition-colors hover:bg-surface-muted"
-                disabled={deleting}
-                onClick={() => setConfirmOpen(false)}
-                type="button"
-              >
-                No
-              </button>
-              <button
-                className="h-11 min-w-[88px] rounded-base bg-danger-500 px-5 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:opacity-60"
-                disabled={deleting}
-                onClick={() => void confirmDelete()}
-                type="button"
-              >
-                {deleting ? "Deleting…" : "Yes, delete"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ListDeleteConfirmDialog
+          count={selected.size}
+          deleteMessage={deleteMessage}
+          entityName={singularName}
+          error={deleteError}
+          itemLabels={selectedLabels}
+          loading={deleting}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => void confirmDelete()}
+          open={confirmOpen}
+        />
       ) : null}
     </section>
   );

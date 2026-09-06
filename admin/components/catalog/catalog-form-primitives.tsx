@@ -3,9 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { DragEvent, ReactNode } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { Icon } from "@/components/layout/icon";
+import { routes } from "@/config/routes";
+import {
+  ASSIGNED_PRODUCTS_PAGE_SIZE,
+  ASSIGNED_PRODUCTS_PLACEHOLDER,
+  LOW_STOCK_THRESHOLD,
+  type AssignedProductPreview,
+} from "@/lib/assigned-products";
+import { productEditPath } from "@/lib/paths";
 import { platformInstance } from "@platform/api-client";
 import { cn } from "@/utils/cn";
 
@@ -203,6 +211,54 @@ export async function uploadCatalogImages(
   return Promise.all(files.map((file) => uploadCatalogImage(file, folder)));
 }
 
+export function getSavedCatalogImageUrls(
+  entries: CatalogImagePreview[]
+): string[] {
+  return entries
+    .filter(
+      (entry): entry is Extract<CatalogImagePreview, { kind: "saved" }> =>
+        entry.kind === "saved"
+    )
+    .map((entry) => entry.url);
+}
+
+export function hasPendingCatalogImages(
+  entries: CatalogImagePreview[]
+): boolean {
+  return entries.some((entry) => entry.kind === "pending");
+}
+
+export async function uploadPendingCatalogImageUrls(
+  entries: CatalogImagePreview[],
+  folder: "categories" | "brands" | "products"
+): Promise<{ uploadedUrls: string[]; urls: string[] }> {
+  const pendingEntries = entries.filter(
+    (entry): entry is Extract<CatalogImagePreview, { kind: "pending" }> =>
+      entry.kind === "pending"
+  );
+  const uploadedUrls = await uploadCatalogImages(
+    pendingEntries.map((entry) => entry.file),
+    folder
+  );
+  let pendingIndex = 0;
+
+  const urls = entries.map((entry) => {
+    if (entry.kind === "saved") {
+      return entry.url;
+    }
+
+    const uploadedUrl = uploadedUrls[pendingIndex];
+    pendingIndex += 1;
+    if (!uploadedUrl) {
+      throw new Error("Failed to upload one or more catalog images.");
+    }
+
+    return uploadedUrl;
+  });
+
+  return { uploadedUrls, urls };
+}
+
 export function isHostedCatalogImageUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -246,38 +302,215 @@ export async function deleteHostedCatalogImages(urls: string[]): Promise<void> {
   }
 }
 
+export type CatalogFieldErrors = {
+  name?: string;
+  sku?: string;
+};
+
+type ParsedCatalogFormError = {
+  fieldErrors: CatalogFieldErrors;
+  summary: string;
+};
+
+export function getCatalogFieldErrors(
+  message: string | null
+): CatalogFieldErrors {
+  return parseCatalogFormError(message).fieldErrors;
+}
+
+function parseCatalogFormError(message: string | null): ParsedCatalogFormError {
+  if (!message) {
+    return {
+      fieldErrors: {},
+      summary: "",
+    };
+  }
+
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("category slug already exists")) {
+    return {
+      summary: "This category name is already taken.",
+      fieldErrors: { name: "Already in use" },
+    };
+  }
+
+  if (normalized.includes("brand slug already exists")) {
+    return {
+      summary: "This brand name is already taken.",
+      fieldErrors: { name: "Already in use" },
+    };
+  }
+
+  if (normalized.includes("attribute slug already exists")) {
+    return {
+      summary: "This attribute name is already taken.",
+      fieldErrors: { name: "Already in use" },
+    };
+  }
+
+  if (normalized.includes("product slug or sku already exists")) {
+    return {
+      summary: "A product with this name already exists.",
+      fieldErrors: { name: "Already in use" },
+    };
+  }
+
+  if (normalized.includes("cannot remove value")) {
+    return {
+      summary: "A product still uses one of the removed values.",
+      fieldErrors: {},
+    };
+  }
+
+  if (normalized.includes("upload")) {
+    return {
+      summary: "Image upload failed. Try again.",
+      fieldErrors: {},
+    };
+  }
+
+  return {
+    summary: message,
+    fieldErrors: {},
+  };
+}
+
 export function CatalogFormError({ message }: { message: string | null }) {
+  const alertRef = useRef<HTMLDivElement>(null);
+  const parsed = parseCatalogFormError(message);
+
+  useEffect(() => {
+    if (!message || !alertRef.current) {
+      return;
+    }
+
+    alertRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    alertRef.current.focus({ preventScroll: true });
+  }, [message]);
+
   if (!message) {
     return null;
   }
-  return <p className="text-[14px] text-danger-600">{message}</p>;
+
+  return (
+    <div
+      aria-live="assertive"
+      className="rounded-base border border-danger-200 bg-danger-50 px-4 py-3 shadow-card"
+      ref={alertRef}
+      role="alert"
+      tabIndex={-1}
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-danger-100 text-danger-600">
+          <Icon className="h-4 w-4" name="circle-alert" />
+        </span>
+        <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-danger-700">
+          {parsed.summary}
+        </p>
+      </div>
+    </div>
+  );
 }
 
-export function CatalogFormActions({
+function CatalogFormActionsInner({
   cancelHref,
   loading,
+  onRequestLeave,
   saveLabel = "Save",
 }: {
   cancelHref: string;
   loading: boolean;
+  onRequestLeave?: (href: string) => void;
   saveLabel?: string;
 }) {
+  const cancelClassName =
+    "inline-flex h-10 items-center gap-2 rounded-base border border-surface-line px-5 text-[14px] font-semibold text-ink-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60";
+
   return (
-    <div className="mt-6 flex items-center justify-end gap-3 border-t border-surface-line pt-5">
-      <Link
-        className="inline-flex h-10 items-center gap-2 rounded-base border border-surface-line px-5 text-[14px] font-semibold text-ink-700 hover:bg-surface-muted"
-        href={cancelHref}
-      >
-        Cancel
-      </Link>
+    <>
+      {loading && onRequestLeave ? (
+        <button
+          className={cancelClassName}
+          onClick={() => onRequestLeave(cancelHref)}
+          type="button"
+        >
+          Cancel
+        </button>
+      ) : (
+        <Link className={cancelClassName} href={cancelHref}>
+          Cancel
+        </Link>
+      )}
       <button
-        className="inline-flex h-10 items-center gap-2 rounded-base bg-brand-600 px-5 text-[14px] font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+        aria-busy={loading}
+        className="inline-flex h-10 items-center gap-2 rounded-base bg-brand-600 px-5 text-[14px] font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={loading}
         type="submit"
       >
         <Icon className="h-4 w-4" name="save" />
         {loading ? "Saving…" : saveLabel}
       </button>
+    </>
+  );
+}
+
+export function CatalogFormFooter({
+  cancelHref,
+  error,
+  loading,
+  onRequestLeave,
+  saveLabel = "Save",
+}: {
+  cancelHref: string;
+  error: string | null;
+  loading: boolean;
+  onRequestLeave?: (href: string) => void;
+  saveLabel?: string;
+}) {
+  return (
+    <footer className="mt-6 border-t border-surface-line pt-5">
+      {loading ? (
+        <p className="mb-4 text-[13px] font-medium text-brand-600">
+          Saving changes…
+        </p>
+      ) : null}
+      {error ? (
+        <div className="mb-4">
+          <CatalogFormError message={error} />
+        </div>
+      ) : null}
+      <div className="flex items-center justify-end gap-3">
+        <CatalogFormActionsInner
+          cancelHref={cancelHref}
+          loading={loading}
+          onRequestLeave={onRequestLeave}
+          saveLabel={saveLabel}
+        />
+      </div>
+    </footer>
+  );
+}
+
+export function CatalogFormActions({
+  cancelHref,
+  loading,
+  onRequestLeave,
+  saveLabel = "Save",
+}: {
+  cancelHref: string;
+  loading: boolean;
+  onRequestLeave?: (href: string) => void;
+  saveLabel?: string;
+}) {
+  return (
+    <div className="mt-6 flex items-center justify-end gap-3 border-t border-surface-line pt-5">
+      <CatalogFormActionsInner
+        cancelHref={cancelHref}
+        loading={loading}
+        onRequestLeave={onRequestLeave}
+        saveLabel={saveLabel}
+      />
     </div>
   );
 }
@@ -307,6 +540,8 @@ export function StatusDot({
 }
 
 type ControlledFieldProps = {
+  disabled?: boolean;
+  error?: string;
   help?: string;
   label: string;
   maxLength?: number;
@@ -318,6 +553,8 @@ type ControlledFieldProps = {
 };
 
 export function ControlledField({
+  disabled = false,
+  error,
   help,
   label,
   maxLength,
@@ -327,13 +564,24 @@ export function ControlledField({
   type = "text",
   value,
 }: ControlledFieldProps) {
+  const fieldId = label.toLowerCase().replace(/\s+/g, "-");
+  const errorId = error ? `${fieldId}-error` : undefined;
+
   return (
     <label className="block">
       <span className="text-[13px] font-semibold text-ink-700">
         {label} {required ? <span className="text-danger-500">*</span> : null}
       </span>
       <input
-        className="mt-1.5 h-10 w-full rounded-base border border-surface-line bg-surface-body px-3 text-[14px] placeholder:text-ink-400 focus:border-brand-600"
+        aria-describedby={errorId}
+        aria-invalid={Boolean(error)}
+        className={cn(
+          "mt-1.5 h-10 w-full rounded-base border bg-surface-body px-3 text-[14px] placeholder:text-ink-400 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-400",
+          error
+            ? "border-danger-500 focus:border-danger-500"
+            : "border-surface-line focus:border-brand-600"
+        )}
+        disabled={disabled}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -341,12 +589,22 @@ export function ControlledField({
         type={type}
         value={value}
       />
-      {help ? <p className="mt-1 text-[12px] text-ink-400">{help}</p> : null}
+      {error ? (
+        <p
+          className="mt-1 text-[12px] font-medium text-danger-600"
+          id={errorId}
+        >
+          {error}
+        </p>
+      ) : help ? (
+        <p className="mt-1 text-[12px] text-ink-400">{help}</p>
+      ) : null}
     </label>
   );
 }
 
 type ControlledSelectProps = {
+  disabled?: boolean;
   help?: string;
   hideLabel?: boolean;
   label: string;
@@ -356,6 +614,7 @@ type ControlledSelectProps = {
 };
 
 export function ControlledSelect({
+  disabled = false,
   help,
   hideLabel,
   label,
@@ -372,9 +631,10 @@ export function ControlledSelect({
       )}
       <select
         className={cn(
-          "h-10 w-full rounded-base border border-surface-line bg-surface-body px-3 text-[14px] focus:border-brand-600",
+          "h-10 w-full rounded-base border border-surface-line bg-surface-body px-3 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-400",
           hideLabel ? "mt-0" : "mt-1.5"
         )}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
@@ -390,6 +650,7 @@ export function ControlledSelect({
 }
 
 type ControlledTextareaProps = {
+  disabled?: boolean;
   help?: string;
   label: string;
   minRows?: number;
@@ -419,6 +680,7 @@ export function ReadOnlyField({
 }
 
 export function ControlledTextarea({
+  disabled = false,
   help,
   label,
   minRows = 4,
@@ -430,7 +692,8 @@ export function ControlledTextarea({
     <label className="block">
       <span className="text-[13px] font-semibold text-ink-700">{label}</span>
       <textarea
-        className="mt-1.5 w-full rounded-base border border-surface-line bg-surface-body px-3 py-2 text-[14px] placeholder:text-ink-400 focus:border-brand-600"
+        className="mt-1.5 w-full rounded-base border border-surface-line bg-surface-body px-3 py-2 text-[14px] placeholder:text-ink-400 focus:border-brand-600 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-400"
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={minRows}
@@ -574,6 +837,340 @@ export function BrandTilePreview({
   );
 }
 
+export type { AssignedProductPreview };
+
+const assignedProductStatusClass: Record<
+  AssignedProductPreview["status"],
+  string
+> = {
+  draft: "bg-surface-muted text-ink-600",
+  published: "bg-success-50 text-success-600",
+  archived: "bg-surface-muted text-ink-500",
+};
+
+const assignedProductStatusLabel: Record<
+  AssignedProductPreview["status"],
+  string
+> = {
+  draft: "Draft",
+  published: "Published",
+  archived: "Archived",
+};
+
+function CatalogNavAction({
+  children,
+  className,
+  disabled = false,
+  href,
+  onRequestLeave,
+}: {
+  children: ReactNode;
+  className?: string;
+  disabled?: boolean;
+  href: string;
+  onRequestLeave?: (href: string) => void;
+}) {
+  if (!disabled) {
+    return (
+      <Link className={className} href={href}>
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      className={className}
+      onClick={() => onRequestLeave?.(href)}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
+function AssignedProductThumb({ alt, src }: { alt: string; src: string }) {
+  const [failed, setFailed] = useState(false);
+  const resolved = src.trim() || ASSIGNED_PRODUCTS_PLACEHOLDER;
+  const isRemote = resolved.startsWith("http");
+  const isBlobPreview = resolved.startsWith("blob:");
+
+  if (failed) {
+    return (
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-base bg-surface-muted text-ink-400 ring-1 ring-inset ring-surface-line">
+        <Icon className="h-4 w-4" name="package" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-base bg-surface-muted ring-1 ring-inset ring-surface-line">
+      <Image
+        alt={alt}
+        className="h-full w-full object-cover"
+        height={36}
+        onError={() => setFailed(true)}
+        sizes="36px"
+        src={resolved}
+        unoptimized={isRemote || isBlobPreview}
+        width={36}
+      />
+    </span>
+  );
+}
+
+function AssignedProductRow({
+  disabled = false,
+  onRequestLeave,
+  product,
+}: {
+  disabled?: boolean;
+  onRequestLeave?: (href: string) => void;
+  product: AssignedProductPreview;
+}) {
+  const href = productEditPath(product.id);
+  const isLowStock =
+    product.status === "published" && product.stock <= LOW_STOCK_THRESHOLD;
+  const rowClassName =
+    "group grid w-full grid-cols-[minmax(0,1fr)_4.5rem_3rem] items-center gap-x-3 px-3 py-2 text-left transition-colors hover:bg-surface-muted/50 sm:grid-cols-[minmax(0,1fr)_5.5rem_3.5rem]";
+
+  const content = (
+    <>
+      <span className="flex min-w-0 items-center gap-2.5">
+        <AssignedProductThumb alt={product.name} src={product.image} />
+        <span className="min-w-0 truncate text-[13px] font-medium text-ink-900 group-hover:text-brand-600">
+          {product.name}
+        </span>
+      </span>
+      <span
+        className={cn(
+          "justify-self-center rounded-full px-2 py-0.5 text-center text-[10px] font-semibold leading-none",
+          assignedProductStatusClass[product.status]
+        )}
+      >
+        {assignedProductStatusLabel[product.status]}
+      </span>
+      <span
+        className={cn(
+          "justify-self-end text-right text-[11px] tabular-nums text-ink-500",
+          isLowStock && "font-semibold text-warning-600"
+        )}
+        title={
+          isLowStock
+            ? "Low stock — below threshold"
+            : `${product.stock} in stock`
+        }
+      >
+        {isLowStock ? (
+          <span className="inline-flex items-center gap-0.5">
+            <Icon className="h-3 w-3" name="circle-alert" />
+            {product.stock}
+          </span>
+        ) : (
+          product.stock
+        )}
+      </span>
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <button
+        className={rowClassName}
+        onClick={() => onRequestLeave?.(href)}
+        type="button"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link className={rowClassName} href={href}>
+      {content}
+    </Link>
+  );
+}
+
+function AssignedProductsPagination({
+  disabled = false,
+  onPageChange,
+  page,
+  pageSize,
+  totalItems,
+}: {
+  disabled?: boolean;
+  onPageChange: (page: number) => void;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+
+  if (totalItems <= pageSize) {
+    return null;
+  }
+
+  const rangeStart = (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, totalItems);
+
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-surface-line bg-surface-body/50 px-3 py-1.5">
+      <p className="text-[11px] text-ink-400">
+        {rangeStart}–{rangeEnd} of {totalItems}
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          aria-label="Previous page"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-base border border-surface-line text-ink-600 transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={disabled || safePage <= 1}
+          onClick={() => onPageChange(safePage - 1)}
+          type="button"
+        >
+          <Icon className="h-3.5 w-3.5" name="chevron-left" />
+        </button>
+        <span className="min-w-[3.5rem] text-center text-[11px] font-medium text-ink-500">
+          {safePage}/{totalPages}
+        </span>
+        <button
+          aria-label="Next page"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-base border border-surface-line text-ink-600 transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={disabled || safePage >= totalPages}
+          onClick={() => onPageChange(safePage + 1)}
+          type="button"
+        >
+          <Icon className="h-3.5 w-3.5" name="chevron-right" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AssignedProductsSection({
+  addProductHref,
+  count,
+  disabled = false,
+  emptyDescription,
+  entityLabel,
+  onRequestLeave,
+  products,
+  productsHref,
+  title = "Assigned products",
+}: {
+  addProductHref: string;
+  count: number;
+  disabled?: boolean;
+  emptyDescription: string;
+  entityLabel: string;
+  onRequestLeave?: (href: string) => void;
+  products: AssignedProductPreview[];
+  productsHref: string;
+  title?: string;
+}) {
+  const [page, setPage] = useState(1);
+  const hasProducts = count > 0;
+  const listedCount = products.length;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(listedCount / ASSIGNED_PRODUCTS_PAGE_SIZE)
+  );
+  const safePage = Math.min(page, totalPages);
+  const pageProducts = products.slice(
+    (safePage - 1) * ASSIGNED_PRODUCTS_PAGE_SIZE,
+    safePage * ASSIGNED_PRODUCTS_PAGE_SIZE
+  );
+  const unlistedCount = Math.max(0, count - listedCount);
+
+  useEffect(() => {
+    setPage(1);
+  }, [listedCount, count]);
+
+  return (
+    <section className="rounded-card border border-surface-line bg-surface-card p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold text-ink-900">{title}</h2>
+          <p className="mt-0.5 text-[11px] text-ink-400">
+            {hasProducts
+              ? `${count} product${count === 1 ? "" : "s"} linked to this ${entityLabel}`
+              : `Nothing linked to this ${entityLabel} yet`}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {hasProducts ? (
+            <CatalogNavAction
+              className="inline-flex h-8 items-center gap-1 rounded-base px-2.5 text-[12px] font-semibold text-ink-600 transition-colors hover:bg-surface-muted hover:text-brand-600"
+              disabled={disabled}
+              href={productsHref}
+              onRequestLeave={onRequestLeave}
+            >
+              View all
+              <Icon className="h-3 w-3" name="arrow-up-right" />
+            </CatalogNavAction>
+          ) : null}
+          <CatalogNavAction
+            className="inline-flex h-8 items-center gap-1 rounded-base bg-brand-600 px-3 text-[12px] font-semibold text-white transition-colors hover:bg-brand-700"
+            disabled={disabled}
+            href={addProductHref}
+            onRequestLeave={onRequestLeave}
+          >
+            <Icon className="h-3.5 w-3.5" name="plus" />
+            Add product
+          </CatalogNavAction>
+        </div>
+      </div>
+
+      {hasProducts ? (
+        <div className="mt-3 overflow-hidden rounded-base border border-surface-line">
+          <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_3rem] items-center gap-x-3 border-b border-surface-line bg-surface-body/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-400 sm:grid-cols-[minmax(0,1fr)_5.5rem_3.5rem]">
+            <span>Product</span>
+            <span className="text-center">Status</span>
+            <span className="text-right">Stock</span>
+          </div>
+          <ul className="divide-y divide-surface-line bg-surface-card">
+            {pageProducts.map((product) => (
+              <li key={product.id}>
+                <AssignedProductRow
+                  disabled={disabled}
+                  onRequestLeave={onRequestLeave}
+                  product={product}
+                />
+              </li>
+            ))}
+          </ul>
+          {listedCount > ASSIGNED_PRODUCTS_PAGE_SIZE ? (
+            <AssignedProductsPagination
+              disabled={disabled}
+              onPageChange={setPage}
+              page={safePage}
+              pageSize={ASSIGNED_PRODUCTS_PAGE_SIZE}
+              totalItems={listedCount}
+            />
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center gap-3 rounded-base border border-dashed border-surface-line bg-surface-body/60 px-3 py-2.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-muted text-ink-400">
+            <Icon className="h-4 w-4" name="package" />
+          </span>
+          <p className="min-w-0 flex-1 text-[12px] text-ink-500">
+            {emptyDescription}
+          </p>
+        </div>
+      )}
+
+      {unlistedCount > 0 ? (
+        <p className="mt-2 text-[11px] text-ink-400">
+          +{unlistedCount} more not loaded — open View all for the complete
+          list.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+/** @deprecated Use AssignedProductsSection */
 export function ProductCountCard({
   count,
   productsHref,
@@ -582,19 +1179,14 @@ export function ProductCountCard({
   productsHref: string;
 }) {
   return (
-    <FormCard title="Assigned products">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[14px] text-ink-500">Products in catalog</span>
-        <span className="text-[18px] font-semibold text-ink-900">{count}</span>
-      </div>
-      <Link
-        className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-base bg-brand-50 text-[13px] font-semibold text-brand-600 hover:bg-brand-100"
-        href={productsHref}
-      >
-        View products
-        <Icon className="h-3.5 w-3.5" name="arrow-up-right" />
-      </Link>
-    </FormCard>
+    <AssignedProductsSection
+      addProductHref={routes.addProduct}
+      count={count}
+      emptyDescription="Create a product and assign it from the product form."
+      entityLabel="catalog item"
+      products={[]}
+      productsHref={productsHref}
+    />
   );
 }
 
@@ -604,9 +1196,11 @@ export type AttributeValueRow = {
 };
 
 export function AttributeValuesEditor({
+  disabled = false,
   onRowsChange,
   rows,
 }: {
+  disabled?: boolean;
   onRowsChange: (rows: AttributeValueRow[]) => void;
   rows: AttributeValueRow[];
 }) {
@@ -617,7 +1211,8 @@ export function AttributeValuesEditor({
           <div className="flex items-center gap-2" key={item.id}>
             <input
               aria-label={`Attribute value ${index + 1}`}
-              className="h-10 flex-1 rounded-base border border-surface-line bg-surface-body px-3 text-[14px] focus:border-brand-600"
+              className="h-10 flex-1 rounded-base border border-surface-line bg-surface-body px-3 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-400"
+              disabled={disabled}
               onChange={(event) => {
                 onRowsChange(
                   rows.map((row) =>
@@ -632,7 +1227,8 @@ export function AttributeValuesEditor({
             />
             <button
               aria-label="Remove value"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-base border border-danger-100 bg-danger-50 text-danger-500 hover:bg-danger-100"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-base border border-danger-100 bg-danger-50 text-danger-500 hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={disabled}
               onClick={() => {
                 if (rows.length <= 1) {
                   onRowsChange([{ id: item.id, value: "" }]);
@@ -648,7 +1244,8 @@ export function AttributeValuesEditor({
         ))}
       </div>
       <button
-        className="mt-4 inline-flex h-10 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted"
+        className="mt-4 inline-flex h-10 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={disabled}
         onClick={() =>
           onRowsChange([...rows, { id: `value-${Date.now()}`, value: "" }])
         }
@@ -983,10 +1580,12 @@ export function CatalogMediaUploadField({
 
 export function ProductAttributesFields({
   attributes,
+  disabled = false,
   onChange,
   values,
 }: {
   attributes: ProductFormAttribute[];
+  disabled?: boolean;
   onChange: (values: Record<string, string>) => void;
   values: Record<string, string>;
 }) {
@@ -1006,6 +1605,7 @@ export function ProductAttributesFields({
           if (attribute.displayType === "Text") {
             return (
               <ControlledField
+                disabled={disabled}
                 help={inactiveHelp}
                 key={attribute.slug}
                 label={attribute.name}
@@ -1020,6 +1620,7 @@ export function ProductAttributesFields({
 
           return (
             <ControlledSelect
+              disabled={disabled}
               help={
                 inactiveHelp ??
                 (attribute.displayType === "Swatch"

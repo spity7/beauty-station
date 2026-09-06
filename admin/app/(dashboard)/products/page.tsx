@@ -5,8 +5,17 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ProductListTable } from "@/components/products/product-list-table";
 import { routes } from "@/config/routes";
 import type { Product } from "@/data/products/data";
-import { fetchProducts } from "@platform/api-client";
-import { mapProductDto } from "@/lib/mappers/catalog";
+import {
+  fetchAttributes,
+  fetchBrands,
+  fetchCategories,
+  fetchProducts,
+} from "@platform/api-client";
+import {
+  mapBrandDto,
+  mapCategoryDto,
+  mapProductDto,
+} from "@/lib/mappers/catalog";
 import { getAdminSiteConfig } from "@/lib/site";
 
 const site = getAdminSiteConfig();
@@ -15,13 +24,46 @@ export const metadata: Metadata = {
   title: `Products | ${site.name} Admin`,
 };
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    attributeSlug?: string;
+    brandId?: string;
+    categoryId?: string;
+  }>;
+}) {
+  const { attributeSlug, brandId, categoryId } = await searchParams;
   let products: Array<Product & { id: string }> = [];
+  let categoryFilters: Array<{ id: string; name: string }> = [];
+  let brandFilters: Array<{ id: string; name: string }> = [];
+  let attributeFilters: Array<{ id: string; name: string }> = [];
   let loadError: string | null = null;
 
   try {
-    const response = await fetchProducts({ limit: 100 });
-    products = response.data.map(mapProductDto);
+    const [
+      productsResponse,
+      categoriesResponse,
+      brandsResponse,
+      attributesResponse,
+    ] = await Promise.all([
+      fetchProducts({ limit: 100 }),
+      fetchCategories({ limit: 100 }),
+      fetchBrands({ limit: 100 }),
+      fetchAttributes({ limit: 100 }),
+    ]);
+    products = productsResponse.data.map(mapProductDto);
+    categoryFilters = categoriesResponse.data
+      .map(mapCategoryDto)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(({ id, name }) => ({ id, name }));
+    brandFilters = brandsResponse.data
+      .map(mapBrandDto)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(({ id, name }) => ({ id, name }));
+    attributeFilters = attributesResponse.data
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((attribute) => ({ id: attribute.slug, name: attribute.name }));
   } catch (error) {
     loadError =
       error instanceof Error
@@ -52,7 +94,13 @@ export default async function ProductsPage() {
           the repo root.
         </div>
       ) : null}
-      <ProductListTable products={products} />
+      <ProductListTable
+        attributeFilters={attributeFilters}
+        brandFilters={brandFilters}
+        categoryFilters={categoryFilters}
+        initialFilters={{ attributeSlug, brandId, categoryId }}
+        products={products}
+      />
     </>
   );
 }

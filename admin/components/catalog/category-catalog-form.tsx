@@ -3,22 +3,27 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
-  CatalogFormActions,
-  CatalogFormError,
+  AssignedProductsSection,
+  CatalogFormFooter,
   ControlledField,
   ControlledSelect,
   collectRemovedHostedImages,
   deleteHostedCatalogImages,
+  getCatalogFieldErrors,
   getThumbnailPreviewState,
   isHostedCatalogImageUrl,
-  ProductCountCard,
   revokeBlobPreviewUrl,
   StatusDot,
   ThumbnailUploadCard,
   uploadCatalogImage,
+  type AssignedProductPreview,
 } from "@/components/catalog/catalog-form-primitives";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
+import { addProductPath, productsListPath } from "@/lib/paths";
+import { finishCatalogSave } from "@/lib/catalog-feedback";
+import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
+import { useToast } from "@/providers/toast-provider";
 import { createCategoryApi, updateCategoryApi } from "@platform/api-client";
 import type { CategoryDto } from "@platform/shared";
 
@@ -28,15 +33,18 @@ type FormState = {
 };
 
 type CategoryCatalogFormProps = {
+  assignedProducts?: AssignedProductPreview[];
   initial?: CategoryDto;
   mode: "add" | "edit";
 };
 
 export function CategoryCatalogForm({
+  assignedProducts = [],
   initial,
   mode,
 }: CategoryCatalogFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [name, setName] = useState(initial?.name ?? "");
   const [savedImageUrl, setSavedImageUrl] = useState(initial?.image ?? "");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
@@ -57,6 +65,14 @@ export function CategoryCatalogForm({
     () => getThumbnailPreviewState(savedImageUrl, pendingImageFile !== null),
     [pendingImageFile, savedImageUrl]
   );
+
+  const fieldErrors = useMemo(
+    () => getCatalogFieldErrors(formState.error),
+    [formState.error]
+  );
+  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+    loading: formState.loading,
+  });
 
   useEffect(() => {
     return () => {
@@ -88,25 +104,32 @@ export function CategoryCatalogForm({
     event.preventDefault();
     setFormState({ error: null, loading: true });
 
-    let finalImage = savedImageUrl.trim();
+    const baseImage = savedImageUrl.trim();
+    let finalImage = baseImage;
     const uploadedInThisAttempt: string[] = [];
 
     try {
+      const basePayload = { name, image: baseImage, status };
+      let categoryId: string;
+
+      if (mode === "add") {
+        const created = await createCategoryApi(basePayload);
+        categoryId = created.id;
+      } else if (initial) {
+        await updateCategoryApi(initial.id, basePayload);
+        categoryId = initial.id;
+      } else {
+        throw new Error("Save failed");
+      }
+
       if (pendingImageFile) {
         finalImage = await uploadCatalogImage(pendingImageFile, "categories");
         uploadedInThisAttempt.push(finalImage);
+        await updateCategoryApi(categoryId, { image: finalImage });
         revokeBlobPreviewUrl(previewUrl);
         setPendingImageFile(null);
         setPreviewUrl(finalImage);
         setSavedImageUrl(finalImage);
-      }
-
-      const payload = { name, image: finalImage, status };
-
-      if (mode === "add") {
-        await createCategoryApi(payload);
-      } else if (initial) {
-        await updateCategoryApi(initial.id, payload);
       }
 
       await deleteHostedCatalogImages(
@@ -116,8 +139,14 @@ export function CategoryCatalogForm({
         )
       );
 
-      router.push(routes.categories);
-      router.refresh();
+      finishCatalogSave({
+        entity: "category",
+        listHref: routes.categories,
+        mode,
+        name,
+        router,
+        showToast,
+      });
     } catch (error) {
       if (uploadedInThisAttempt.length > 0) {
         await deleteHostedCatalogImages(uploadedInThisAttempt);
@@ -130,13 +159,22 @@ export function CategoryCatalogForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      aria-busy={formState.loading}
+      className="min-w-0 max-w-full space-y-4"
+      onSubmit={handleSubmit}
+    >
       <div className="grid min-w-0 max-w-full items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
         <FormCard title="General">
           <ControlledField
+            disabled={disabled}
+            error={fieldErrors.name}
             help="A category name is required and should be unique."
             label="Category name"
-            onChange={setName}
+            onChange={(value) => {
+              setName(value);
+              setFormState((current) => ({ ...current, error: null }));
+            }}
             placeholder="Category name"
             required
             value={name}
@@ -149,6 +187,7 @@ export function CategoryCatalogForm({
           }
         >
           <ControlledSelect
+            disabled={disabled}
             help="Draft categories are hidden from published storefront views."
             hideLabel
             label="Status"
@@ -162,7 +201,7 @@ export function CategoryCatalogForm({
         </FormCard>
         <ThumbnailUploadCard
           alt={name || "Category thumbnail"}
-          disabled={formState.loading}
+          disabled={disabled}
           onClear={handleRemoveImage}
           onUpload={handleImageUpload}
           previewState={previewState}
@@ -170,18 +209,24 @@ export function CategoryCatalogForm({
         />
       </div>
       {mode === "edit" && initial ? (
-        <div className="mt-4">
-          <ProductCountCard
-            count={initial.productCount}
-            productsHref={routes.products}
-          />
-        </div>
+        <AssignedProductsSection
+          addProductHref={addProductPath({ categoryId: initial.id })}
+          count={initial.productCount}
+          disabled={disabled}
+          emptyDescription="Add a product and choose this category in the product form."
+          entityLabel="category"
+          onRequestLeave={requestLeave}
+          products={assignedProducts}
+          productsHref={productsListPath({ categoryId: initial.id })}
+        />
       ) : null}
-      <CatalogFormError message={formState.error} />
-      <CatalogFormActions
+      <CatalogFormFooter
         cancelHref={routes.categories}
+        error={formState.error}
         loading={formState.loading}
+        onRequestLeave={requestLeave}
       />
+      {leaveDialog}
     </form>
   );
 }

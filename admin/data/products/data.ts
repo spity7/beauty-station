@@ -4,7 +4,11 @@ export type ProductStatus = "draft" | "low stock" | "published";
 
 export type Product = {
   id?: string;
+  attributeSlugs?: string[];
+  brand?: string;
+  brandId?: string;
   category: string;
+  categoryId?: string;
   image: string;
   name: string;
   price: number;

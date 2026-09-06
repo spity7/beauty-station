@@ -2,12 +2,20 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/layout/icon";
-import { AppSelect } from "@/components/ui/app-select";
+import {
+  ListClearFiltersButton,
+  ListFilterSelect,
+  ListSearchField,
+} from "@/components/ui/list-filter-controls";
+import { ListDeleteConfirmDialog } from "@/components/ui/list-delete-confirm-dialog";
 import { StatusBadge } from "@/components/products/status-badge";
 import { routes } from "@/config/routes";
 import { productEditPath } from "@/lib/paths";
+import { finishCatalogDelete } from "@/lib/catalog-feedback";
+import { useToast } from "@/providers/toast-provider";
 import type { Product, ProductStatus } from "@/data/products/data";
 import { deleteProductApi } from "@platform/api-client";
 import { cn } from "@/utils/cn";
@@ -15,9 +23,34 @@ import { cn } from "@/utils/cn";
 type SortKey = "name" | "price" | "status" | "stock";
 type SortDirection = "asc" | "desc";
 
+type CatalogFilterOption = {
+  id: string;
+  name: string;
+};
+
+type ProductListInitialFilters = {
+  attributeSlug?: string;
+  brandId?: string;
+  categoryId?: string;
+};
+
 type ProductListTableProps = {
+  attributeFilters: CatalogFilterOption[];
+  brandFilters: CatalogFilterOption[];
+  categoryFilters: CatalogFilterOption[];
+  initialFilters?: ProductListInitialFilters;
   products: Product[];
 };
+
+function resolveInitialListFilter(
+  value: string | undefined,
+  options: CatalogFilterOption[]
+): string {
+  if (value && options.some((option) => option.id === value)) {
+    return value;
+  }
+  return "all";
+}
 
 function productKey(product: Product): string {
   return product.id ?? product.sku;
@@ -35,40 +68,95 @@ const statusLabel: Record<ProductStatus, string> = {
   published: "Published",
 };
 
-const columns = [
-  { index: 3, key: "category", label: "Category" },
-  { index: 4, key: "price", label: "Price" },
-  { index: 5, key: "stock", label: "Stock" },
-  { index: 6, key: "status", label: "Status" },
-] as const;
-
-export function ProductListTable({ products }: ProductListTableProps) {
+export function ProductListTable({
+  attributeFilters,
+  brandFilters,
+  categoryFilters,
+  initialFilters = {},
+  products,
+}: ProductListTableProps) {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | ProductStatus>("all");
+  const [categoryId, setCategoryId] = useState(() =>
+    resolveInitialListFilter(initialFilters.categoryId, categoryFilters)
+  );
+  const [brandId, setBrandId] = useState(() =>
+    resolveInitialListFilter(initialFilters.brandId, brandFilters)
+  );
+  const [attributeSlug, setAttributeSlug] = useState(() =>
+    resolveInitialListFilter(initialFilters.attributeSlug, attributeFilters)
+  );
   const [sort, setSort] = useState<{ direction: SortDirection; key: SortKey }>({
     direction: "asc",
     key: "name",
   });
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Set<number>>(
-    new Set(columns.map((column) => column.index))
-  );
-  const [columnsOpen, setColumnsOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [rows, setRows] = useState(products);
+
+  useEffect(() => {
+    setRows(products);
+  }, [products]);
+
+  const categoryOptions = useMemo(
+    () => [
+      { label: "All categories", value: "all" },
+      ...categoryFilters.map((category) => ({
+        label: category.name,
+        value: category.id,
+      })),
+    ],
+    [categoryFilters]
+  );
+
+  const brandOptions = useMemo(
+    () => [
+      { label: "All brands", value: "all" },
+      ...brandFilters.map((brand) => ({
+        label: brand.name,
+        value: brand.id,
+      })),
+    ],
+    [brandFilters]
+  );
+
+  const attributeOptions = useMemo(
+    () => [
+      { label: "All attributes", value: "all" },
+      ...attributeFilters.map((attribute) => ({
+        label: attribute.name,
+        value: attribute.id,
+      })),
+    ],
+    [attributeFilters]
+  );
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const filtered = rows.filter((product) => {
       const matchesQuery =
         !normalizedQuery ||
-        `${product.name} ${product.sku} ${product.category}`
+        `${product.name} ${product.sku} ${product.category} ${product.brand ?? ""}`
           .toLowerCase()
           .includes(normalizedQuery);
       const matchesStatus = status === "all" || product.status === status;
-      return matchesQuery && matchesStatus;
+      const matchesCategory =
+        categoryId === "all" || product.categoryId === categoryId;
+      const matchesBrand = brandId === "all" || product.brandId === brandId;
+      const matchesAttribute =
+        attributeSlug === "all" ||
+        (product.attributeSlugs?.includes(attributeSlug) ?? false);
+      return (
+        matchesQuery &&
+        matchesStatus &&
+        matchesCategory &&
+        matchesBrand &&
+        matchesAttribute
+      );
     });
 
     return [...filtered].sort((a, b) => {
@@ -79,7 +167,7 @@ export function ProductListTable({ products }: ProductListTableProps) {
 
       return String(a[sort.key]).localeCompare(String(b[sort.key])) * direction;
     });
-  }, [query, rows, sort, status]);
+  }, [attributeSlug, brandId, categoryId, query, rows, sort, status]);
 
   const allVisibleSelected =
     filteredProducts.length > 0 &&
@@ -132,6 +220,12 @@ export function ProductListTable({ products }: ProductListTableProps) {
       );
       setSelected(new Set());
       setConfirmOpen(false);
+      await finishCatalogDelete({
+        count: ids.length,
+        entity: "product",
+        router,
+        showToast,
+      });
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Delete failed");
     } finally {
@@ -139,90 +233,90 @@ export function ProductListTable({ products }: ProductListTableProps) {
     }
   }
 
-  function isColumnVisible(index: number) {
-    return visibleColumns.has(index);
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    categoryId !== "all" ||
+    brandId !== "all" ||
+    attributeSlug !== "all" ||
+    status !== "all";
+
+  function clearAllFilters() {
+    setQuery("");
+    setCategoryId("all");
+    setBrandId("all");
+    setAttributeSlug("all");
+    setStatus("all");
+    router.replace(routes.products);
   }
+
+  const selectedLabels = rows
+    .filter((product) => selected.has(productKey(product)))
+    .map((product) => product.name);
 
   return (
     <section className="rounded-card border border-surface-line bg-surface-card p-6 shadow-card">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <label className="relative block min-w-[200px] flex-1">
-          <span className="sr-only">Search products</span>
-          <Icon
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
-            name="search"
-          />
-          <input
-            className="h-11 w-full rounded-base border border-surface-line bg-surface-body pl-11 pr-4 text-[14px] focus:border-brand-600"
-            onChange={(event) => setQuery(event.target.value)}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ListSearchField
+            label="Search products"
+            onChange={setQuery}
             placeholder="Search products"
-            type="search"
             value={query}
           />
-        </label>
-        <AppSelect
-          className="w-[160px]"
-          onValueChange={(value) => setStatus(value as "all" | ProductStatus)}
-          options={[
-            { label: "All", value: "all" },
-            { label: "Published", value: "published" },
-            { label: "Draft", value: "draft" },
-            { label: "Low stock", value: "low stock" },
-          ]}
-          size="lg"
-          value={status}
-        />
-        <div className="relative">
-          <button
-            aria-expanded={columnsOpen}
-            aria-haspopup="true"
-            className="inline-flex h-11 items-center gap-2 rounded-base border border-surface-line bg-surface-card px-4 text-[14px] font-semibold text-ink-700 transition-colors hover:bg-surface-muted"
-            onClick={() => setColumnsOpen((current) => !current)}
-            type="button"
-          >
-            <Icon className="h-4 w-4" name="sliders-horizontal" />
-            Columns
-          </button>
-          {columnsOpen ? (
-            <div className="absolute right-0 z-20 mt-2 w-48 rounded-base border border-surface-line bg-surface-card p-2 shadow-card">
-              <p className="px-2 py-1 text-[12px] font-semibold uppercase text-ink-400">
-                Toggle columns
-              </p>
-              {columns.map((column) => (
-                <label
-                  className="flex items-center gap-2 rounded px-2 py-1.5 text-[14px] text-ink-700 hover:bg-surface-muted"
-                  key={column.index}
-                >
-                  <input
-                    aria-label={`Toggle ${column.label} column`}
-                    checked={visibleColumns.has(column.index)}
-                    onChange={(event) => {
-                      setVisibleColumns((current) => {
-                        const next = new Set(current);
-                        if (event.target.checked) {
-                          next.add(column.index);
-                        } else {
-                          next.delete(column.index);
-                        }
-                        return next;
-                      });
-                    }}
-                    type="checkbox"
-                  />{" "}
-                  {column.label}
-                </label>
-              ))}
-            </div>
-          ) : null}
+          <ListFilterSelect
+            ariaLabel="Filter by category"
+            className="w-[180px]"
+            defaultValue="all"
+            onValueChange={setCategoryId}
+            options={categoryOptions}
+            size="lg"
+            value={categoryId}
+          />
+          <ListFilterSelect
+            ariaLabel="Filter by brand"
+            className="w-[180px]"
+            defaultValue="all"
+            onValueChange={setBrandId}
+            options={brandOptions}
+            size="lg"
+            value={brandId}
+          />
+          <ListFilterSelect
+            ariaLabel="Filter by attribute"
+            className="w-[180px]"
+            defaultValue="all"
+            onValueChange={setAttributeSlug}
+            options={attributeOptions}
+            size="lg"
+            value={attributeSlug}
+          />
+          <ListFilterSelect
+            ariaLabel="Filter by status"
+            className="w-[160px]"
+            defaultValue="all"
+            onValueChange={(value) => setStatus(value as "all" | ProductStatus)}
+            options={[
+              { label: "All statuses", value: "all" },
+              { label: "Published", value: "published" },
+              { label: "Draft", value: "draft" },
+              { label: "Low stock", value: "low stock" },
+            ]}
+            size="lg"
+            value={status}
+          />
+          <ListClearFiltersButton
+            active={hasActiveFilters}
+            onClear={clearAllFilters}
+          />
         </div>
         <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-base bg-danger-500 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-base bg-danger-500 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={selected.size === 0}
           onClick={() => setConfirmOpen(true)}
           type="button"
         >
           <Icon className="h-4 w-4" name="trash-2" />
-          Delete Selected (<span>{selected.size}</span>)
+          Delete (<span>{selected.size}</span>)
         </button>
       </div>
 
@@ -242,36 +336,14 @@ export function ProductListTable({ products }: ProductListTableProps) {
               <th className="pb-3 pr-4 font-semibold">
                 <SortButton label="Product" name="name" onSort={toggleSort} />
               </th>
-              <th
-                className={cn(
-                  "pb-3 pr-4 font-semibold",
-                  isColumnVisible(3) ? "" : "hidden"
-                )}
-              >
-                Category
-              </th>
-              <th
-                className={cn(
-                  "pb-3 pr-4 font-semibold",
-                  isColumnVisible(4) ? "" : "hidden"
-                )}
-              >
+              <th className="pb-3 pr-4 font-semibold">Category</th>
+              <th className="pb-3 pr-4 font-semibold">
                 <SortButton label="Price" name="price" onSort={toggleSort} />
               </th>
-              <th
-                className={cn(
-                  "pb-3 pr-4 font-semibold",
-                  isColumnVisible(5) ? "" : "hidden"
-                )}
-              >
+              <th className="pb-3 pr-4 font-semibold">
                 <SortButton label="Stock" name="stock" onSort={toggleSort} />
               </th>
-              <th
-                className={cn(
-                  "pb-3 pr-4 font-semibold",
-                  isColumnVisible(6) ? "" : "hidden"
-                )}
-              >
+              <th className="pb-3 pr-4 font-semibold">
                 <SortButton label="Status" name="status" onSort={toggleSort} />
               </th>
               <th className="pb-3 text-right font-semibold">Action</th>
@@ -316,20 +388,8 @@ export function ProductListTable({ products }: ProductListTableProps) {
                     </div>
                   </div>
                 </td>
-                <td
-                  className={cn(
-                    "py-4 pr-4 text-ink-700",
-                    isColumnVisible(3) ? "" : "hidden"
-                  )}
-                >
-                  {product.category}
-                </td>
-                <td
-                  className={cn(
-                    "py-4 pr-4 text-ink-700",
-                    isColumnVisible(4) ? "" : "hidden"
-                  )}
-                >
+                <td className="py-4 pr-4 text-ink-700">{product.category}</td>
+                <td className="py-4 pr-4 text-ink-700">
                   ${product.price.toFixed(2)}
                 </td>
                 <td
@@ -337,18 +397,12 @@ export function ProductListTable({ products }: ProductListTableProps) {
                     "py-4 pr-4",
                     product.status === "low stock"
                       ? "text-warning-600"
-                      : "text-ink-700",
-                    isColumnVisible(5) ? "" : "hidden"
+                      : "text-ink-700"
                   )}
                 >
                   {product.stock}
                 </td>
-                <td
-                  className={cn(
-                    "py-4 pr-4",
-                    isColumnVisible(6) ? "" : "hidden"
-                  )}
-                >
+                <td className="py-4 pr-4">
                   <StatusBadge
                     className={statusClass[product.status]}
                     label={statusLabel[product.status]}
@@ -418,58 +472,16 @@ export function ProductListTable({ products }: ProductListTableProps) {
       </div>
 
       {confirmOpen ? (
-        <div
-          aria-labelledby="confirm-delete-title"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-        >
-          <div className="absolute inset-0 bg-ink-900/50" />
-          <div className="relative w-full max-w-md rounded-card bg-surface-card p-6 text-center shadow-lift">
-            <button
-              aria-label="Close"
-              className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-base text-ink-400 transition-colors hover:bg-surface-muted hover:text-ink-700"
-              onClick={() => setConfirmOpen(false)}
-              type="button"
-            >
-              <Icon className="h-4 w-4" name="x" />
-            </button>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-danger-50 text-danger-500">
-              <Icon className="h-6 w-6" name="trash-2" />
-            </div>
-            <h3
-              className="text-[20px] font-semibold text-ink-900"
-              id="confirm-delete-title"
-            >
-              Are you sure?
-            </h3>
-            <p className="mx-auto mt-2 max-w-xs text-[14px] text-ink-500">
-              This product will be permanently removed from your catalog. This
-              action cannot be undone.
-            </p>
-            {deleteError ? (
-              <p className="mt-2 text-[14px] text-danger-600">{deleteError}</p>
-            ) : null}
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                className="h-11 min-w-[88px] rounded-base border border-surface-line px-5 text-[14px] font-semibold text-ink-700 transition-colors hover:bg-surface-muted"
-                disabled={deleting}
-                onClick={() => setConfirmOpen(false)}
-                type="button"
-              >
-                No
-              </button>
-              <button
-                className="h-11 min-w-[88px] rounded-base bg-danger-500 px-5 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:opacity-60"
-                disabled={deleting}
-                onClick={() => void confirmDelete()}
-                type="button"
-              >
-                {deleting ? "Deleting…" : "Yes, delete"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ListDeleteConfirmDialog
+          count={selected.size}
+          entityName="product"
+          error={deleteError}
+          itemLabels={selectedLabels}
+          loading={deleting}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => void confirmDelete()}
+          open={confirmOpen}
+        />
       ) : null}
     </section>
   );

@@ -27,7 +27,11 @@ export function toAdminProductStatus(product: ProductDto): ProductStatus {
 export function mapProductDto(product: ProductDto): Product & { id: string } {
   return {
     id: product.id,
+    attributeSlugs: Object.keys(product.attributes ?? {}),
+    brand: product.brandName,
+    brandId: product.brandId,
     category: product.categoryName || "Uncategorized",
+    categoryId: product.categoryId,
     image: resolveImage(product.images),
     name: product.name,
     price: product.price,

@@ -369,8 +369,7 @@
           },
           "description": {
             "type": "string",
-            "maxLength": 5000,
-            "default": ""
+            "maxLength": 5000
           },
           "price": {
             "type": "number",
@@ -382,13 +381,11 @@
           },
           "stock": {
             "type": "integer",
-            "minimum": 0,
-            "default": 0
+            "minimum": 0
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "published", "archived"],
-            "default": "draft"
+            "enum": ["draft", "published", "archived"]
           },
           "categoryId": {
             "type": "string"
@@ -400,8 +397,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "default": []
+            }
           },
           "attributes": {
             "type": "object",
@@ -417,15 +413,13 @@
                   }
                 }
               ]
-            },
-            "default": {}
+            }
           },
           "metadata": {
             "type": "object",
             "additionalProperties": {
               "nullable": true
-            },
-            "default": {}
+            }
           }
         }
       },
@@ -468,13 +462,11 @@
             "maxLength": 200
           },
           "image": {
-            "type": "string",
-            "default": ""
+            "type": "string"
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "published"],
-            "default": "draft"
+            "enum": ["draft", "published"]
           }
         }
       },
@@ -532,26 +524,22 @@
           },
           "website": {
             "type": "string",
-            "maxLength": 500,
-            "default": ""
+            "maxLength": 500
           },
           "initials": {
             "type": "string",
             "maxLength": 4
           },
           "tileClass": {
-            "type": "string",
-            "default": "bg-brand-50 text-brand-600"
+            "type": "string"
           },
           "visibility": {
             "type": "string",
-            "enum": ["Featured", "Standard", "Hidden"],
-            "default": "Standard"
+            "enum": ["Featured", "Standard", "Hidden"]
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "published", "archived"],
-            "default": "draft"
+            "enum": ["draft", "published", "archived"]
           }
         }
       },
@@ -609,26 +597,22 @@
           },
           "displayType": {
             "type": "string",
-            "enum": ["Dropdown", "Swatch", "Text"],
-            "default": "Dropdown"
+            "enum": ["Dropdown", "Swatch", "Text"]
           },
           "description": {
             "type": "string",
-            "maxLength": 1000,
-            "default": ""
+            "maxLength": 1000
           },
           "status": {
             "type": "string",
-            "enum": ["active", "draft"],
-            "default": "draft"
+            "enum": ["active", "draft"]
           },
           "values": {
             "type": "array",
             "items": {
               "type": "string",
               "minLength": 1
-            },
-            "default": []
+            }
           }
         }
       },
@@ -2684,8 +2668,7 @@
                   },
                   "description": {
                     "type": "string",
-                    "maxLength": 5000,
-                    "default": ""
+                    "maxLength": 5000
                   },
                   "price": {
                     "type": "number",
@@ -2697,13 +2680,11 @@
                   },
                   "stock": {
                     "type": "integer",
-                    "minimum": 0,
-                    "default": 0
+                    "minimum": 0
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["draft", "published", "archived"],
-                    "default": "draft"
+                    "enum": ["draft", "published", "archived"]
                   },
                   "categoryId": {
                     "type": "string"
@@ -2715,8 +2696,7 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    },
-                    "default": []
+                    }
                   },
                   "attributes": {
                     "type": "object",
@@ -2732,15 +2712,13 @@
                           }
                         }
                       ]
-                    },
-                    "default": {}
+                    }
                   },
                   "metadata": {
                     "type": "object",
                     "additionalProperties": {
                       "nullable": true
-                    },
-                    "default": {}
+                    }
                   }
                 }
               }
@@ -3513,13 +3491,11 @@
                     "maxLength": 200
                   },
                   "image": {
-                    "type": "string",
-                    "default": ""
+                    "type": "string"
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["draft", "published"],
-                    "default": "draft"
+                    "enum": ["draft", "published"]
                   }
                 }
               }
@@ -4152,26 +4128,22 @@
                   },
                   "website": {
                     "type": "string",
-                    "maxLength": 500,
-                    "default": ""
+                    "maxLength": 500
                   },
                   "initials": {
                     "type": "string",
                     "maxLength": 4
                   },
                   "tileClass": {
-                    "type": "string",
-                    "default": "bg-brand-50 text-brand-600"
+                    "type": "string"
                   },
                   "visibility": {
                     "type": "string",
-                    "enum": ["Featured", "Standard", "Hidden"],
-                    "default": "Standard"
+                    "enum": ["Featured", "Standard", "Hidden"]
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["draft", "published", "archived"],
-                    "default": "draft"
+                    "enum": ["draft", "published", "archived"]
                   }
                 }
               }
@@ -4814,26 +4786,22 @@
                   },
                   "displayType": {
                     "type": "string",
-                    "enum": ["Dropdown", "Swatch", "Text"],
-                    "default": "Dropdown"
+                    "enum": ["Dropdown", "Swatch", "Text"]
                   },
                   "description": {
                     "type": "string",
-                    "maxLength": 1000,
-                    "default": ""
+                    "maxLength": 1000
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["active", "draft"],
-                    "default": "draft"
+                    "enum": ["active", "draft"]
                   },
                   "values": {
                     "type": "array",
                     "items": {
                       "type": "string",
                       "minLength": 1
-                    },
-                    "default": []
+                    }
                   }
                 }
               }

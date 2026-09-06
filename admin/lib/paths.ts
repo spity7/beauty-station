@@ -1,4 +1,4 @@
-import { pathBuilders } from "@/config/routes";
+import { pathBuilders, routes } from "@/config/routes";
 
 /**
  * Prefix a path with NEXT_PUBLIC_BASE_URL when the admin app is deployed under a subdirectory.
@@ -18,6 +18,40 @@ export function adminPath(path: string): string {
 
 export function productEditPath(id: string) {
   return pathBuilders.editProduct(id);
+}
+
+export function addProductPath(options?: {
+  brandId?: string;
+  categoryId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (options?.categoryId) {
+    params.set("categoryId", options.categoryId);
+  }
+  if (options?.brandId) {
+    params.set("brandId", options.brandId);
+  }
+  const query = params.toString();
+  return query ? `${routes.addProduct}?${query}` : routes.addProduct;
+}
+
+export function productsListPath(options?: {
+  attributeSlug?: string;
+  brandId?: string;
+  categoryId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (options?.categoryId) {
+    params.set("categoryId", options.categoryId);
+  }
+  if (options?.brandId) {
+    params.set("brandId", options.brandId);
+  }
+  if (options?.attributeSlug) {
+    params.set("attributeSlug", options.attributeSlug);
+  }
+  const query = params.toString();
+  return query ? `${routes.products}?${query}` : routes.products;
 }
 
 export function categoryEditPath(id: string) {

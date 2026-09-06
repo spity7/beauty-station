@@ -26,7 +26,25 @@ export const createProductSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+// PATCH bodies must not inherit create defaults — `.partial()` on defaulted fields
+// still applies defaults for omitted keys and would overwrite unrelated fields.
+export const updateProductSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  slug: z.string().min(1).max(200).optional(),
+  sku: z.string().min(1).max(100).optional(),
+  description: z.string().max(5000).optional(),
+  price: z.number().min(0).optional(),
+  compareAtPrice: z.number().min(0).optional(),
+  stock: z.number().int().min(0).optional(),
+  status: z.enum(PRODUCT_STATUSES).optional(),
+  categoryId: z.string().optional(),
+  brandId: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  attributes: z
+    .record(z.string(), z.union([z.string(), z.array(z.string())]))
+    .optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
 
 export const createCategorySchema = z.object({
   name: z.string().min(1).max(200),
@@ -35,7 +53,12 @@ export const createCategorySchema = z.object({
   status: z.enum(CATEGORY_STATUSES).default("draft"),
 });
 
-export const updateCategorySchema = createCategorySchema.partial();
+export const updateCategorySchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  slug: z.string().min(1).max(200).optional(),
+  image: z.string().optional(),
+  status: z.enum(CATEGORY_STATUSES).optional(),
+});
 
 export const createBrandSchema = z.object({
   name: z.string().min(1).max(200),
@@ -47,7 +70,15 @@ export const createBrandSchema = z.object({
   status: z.enum(BRAND_STATUSES).default("draft"),
 });
 
-export const updateBrandSchema = createBrandSchema.partial();
+export const updateBrandSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  slug: z.string().min(1).max(200).optional(),
+  website: z.string().max(500).optional(),
+  initials: z.string().max(4).optional(),
+  tileClass: z.string().optional(),
+  visibility: z.enum(BRAND_VISIBILITY).optional(),
+  status: z.enum(BRAND_STATUSES).optional(),
+});
 
 export const createAttributeSchema = z.object({
   name: z.string().min(1).max(200),
@@ -58,7 +89,14 @@ export const createAttributeSchema = z.object({
   values: z.array(z.string().min(1)).default([]),
 });
 
-export const updateAttributeSchema = createAttributeSchema.partial();
+export const updateAttributeSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  slug: z.string().min(1).max(200).optional(),
+  displayType: z.enum(ATTRIBUTE_DISPLAY_TYPES).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.enum(ATTRIBUTE_STATUSES).optional(),
+  values: z.array(z.string().min(1)).optional(),
+});
 
 export const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

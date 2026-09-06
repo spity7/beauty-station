@@ -3,18 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  AssignedProductsSection,
   BrandTilePreview,
-  CatalogFormActions,
-  CatalogFormError,
+  CatalogFormFooter,
   CatalogFormLayout,
   ControlledField,
   ControlledSelect,
   deriveInitials,
-  ProductCountCard,
+  getCatalogFieldErrors,
   StatusDot,
+  type AssignedProductPreview,
 } from "@/components/catalog/catalog-form-primitives";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
+import { addProductPath, productsListPath } from "@/lib/paths";
+import { finishCatalogSave } from "@/lib/catalog-feedback";
+import { useToast } from "@/providers/toast-provider";
+import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import { createBrandApi, updateBrandApi } from "@platform/api-client";
 import type { BrandDto } from "@platform/shared";
 
@@ -31,12 +36,18 @@ type FormState = {
 };
 
 type BrandCatalogFormProps = {
+  assignedProducts?: AssignedProductPreview[];
   initial?: BrandDto;
   mode: "add" | "edit";
 };
 
-export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
+export function BrandCatalogForm({
+  assignedProducts = [],
+  initial,
+  mode,
+}: BrandCatalogFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [name, setName] = useState(initial?.name ?? "");
   const [website, setWebsite] = useState(initial?.website ?? "");
   const [initials, setInitials] = useState(initial?.initials ?? "");
@@ -61,6 +72,14 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
     return deriveInitials(name);
   }, [initials, name]);
 
+  const fieldErrors = useMemo(
+    () => getCatalogFieldErrors(formState.error),
+    [formState.error]
+  );
+  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+    loading: formState.loading,
+  });
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormState({ error: null, loading: true });
@@ -80,8 +99,14 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
       } else if (initial) {
         await updateBrandApi(initial.id, payload);
       }
-      router.push(routes.brands);
-      router.refresh();
+      finishCatalogSave({
+        entity: "brand",
+        listHref: routes.brands,
+        mode,
+        name,
+        router,
+        showToast,
+      });
     } catch (error) {
       setFormState({
         error: error instanceof Error ? error.message : "Save failed",
@@ -91,7 +116,11 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      aria-busy={formState.loading}
+      className="min-w-0 max-w-full space-y-4"
+      onSubmit={handleSubmit}
+    >
       <CatalogFormLayout
         aside={
           <>
@@ -106,6 +135,7 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
               }
             >
               <ControlledSelect
+                disabled={disabled}
                 help="Draft brands are hidden from published storefront views."
                 hideLabel
                 label="Status"
@@ -118,12 +148,6 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
                 value={status}
               />
             </FormCard>
-            {mode === "edit" && initial ? (
-              <ProductCountCard
-                count={initial.productCount}
-                productsHref={routes.products}
-              />
-            ) : null}
           </>
         }
       >
@@ -131,14 +155,20 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
           <FormCard title="General">
             <div className="space-y-4">
               <ControlledField
+                disabled={disabled}
+                error={fieldErrors.name}
                 label="Brand name"
-                onChange={setName}
+                onChange={(value) => {
+                  setName(value);
+                  setFormState((current) => ({ ...current, error: null }));
+                }}
                 placeholder="Brand name"
                 required
                 value={name}
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <ControlledField
+                  disabled={disabled}
                   help="Shown in brand tiles (max 4 characters)."
                   label="Initials"
                   maxLength={4}
@@ -147,6 +177,7 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
                   value={initials}
                 />
                 <ControlledSelect
+                  disabled={disabled}
                   label="Tile style"
                   onChange={setTileClass}
                   options={TILE_CLASS_OPTIONS}
@@ -158,6 +189,7 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
           <div className="grid items-start gap-4 sm:grid-cols-2 md:grid-cols-1">
             <FormCard title="Storefront placement">
               <ControlledSelect
+                disabled={disabled}
                 help="Controls how prominently the brand appears in admin merchandising."
                 label="Visibility"
                 onChange={(value) =>
@@ -173,6 +205,7 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
             </FormCard>
             <FormCard title="Brand links">
               <ControlledField
+                disabled={disabled}
                 label="Website"
                 onChange={setWebsite}
                 placeholder="https://example.com"
@@ -182,11 +215,25 @@ export function BrandCatalogForm({ initial, mode }: BrandCatalogFormProps) {
           </div>
         </div>
       </CatalogFormLayout>
-      <CatalogFormError message={formState.error} />
-      <CatalogFormActions
+      {mode === "edit" && initial ? (
+        <AssignedProductsSection
+          addProductHref={addProductPath({ brandId: initial.id })}
+          count={initial.productCount}
+          disabled={disabled}
+          emptyDescription="Add a product and choose this brand in the product form."
+          entityLabel="brand"
+          onRequestLeave={requestLeave}
+          products={assignedProducts}
+          productsHref={productsListPath({ brandId: initial.id })}
+        />
+      ) : null}
+      <CatalogFormFooter
         cancelHref={routes.brands}
+        error={formState.error}
         loading={formState.loading}
+        onRequestLeave={requestLeave}
       />
+      {leaveDialog}
     </form>
   );
 }

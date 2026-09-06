@@ -175,6 +175,7 @@ export function ApiOrdersPanel() {
       columns={columns}
       deleteMessage="Orders cannot be deleted from the admin UI yet."
       editHref={(order) => pathBuilders.orderDetail(order.apiId)}
+      enableColumnToggle
       filterOptions={[
         { label: "All", match: () => true, value: "all" },
         {

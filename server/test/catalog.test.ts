@@ -136,6 +136,56 @@ describe("catalog API", () => {
     await request(app).get(`/api/products/${productId}`).expect(404);
   });
 
+  it("keeps category status when patching image only", async () => {
+    const { body } = await registerAdmin(app);
+
+    const createResponse = await request(app)
+      .post("/api/categories")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Published Image Category ${Date.now()}`,
+        status: "published",
+      })
+      .expect(201);
+
+    assert.equal(createResponse.body.status, "published");
+
+    const patchResponse = await request(app)
+      .patch(`/api/categories/${createResponse.body.id}`)
+      .set(authHeader(body.accessToken))
+      .send({ image: "https://example.com/category.jpg" })
+      .expect(200);
+
+    assert.equal(patchResponse.body.status, "published");
+  });
+
+  it("keeps product status when patching images only", async () => {
+    const { body } = await registerAdmin(app);
+    const suffix = Date.now();
+
+    const createResponse = await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Published Image Product ${suffix}`,
+        sku: `PUB-IMG-${suffix}`,
+        price: 12,
+        stock: 4,
+        status: "published",
+      })
+      .expect(201);
+
+    assert.equal(createResponse.body.status, "published");
+
+    const patchResponse = await request(app)
+      .patch(`/api/products/${createResponse.body.id}`)
+      .set(authHeader(body.accessToken))
+      .send({ images: ["https://example.com/product.jpg"] })
+      .expect(200);
+
+    assert.equal(patchResponse.body.status, "published");
+  });
+
   it("lists categories and brands publicly", async () => {
     const { body } = await registerAdmin(app);
 

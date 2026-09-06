@@ -5,6 +5,7 @@ import { routes } from "@/config/routes";
 import { tryRefreshSession } from "@/lib/refresh-session";
 import { clearSessionAndRedirectToSignIn } from "@/lib/session";
 import { AuthSessionProvider } from "@/providers/auth-session-provider";
+import { ToastProvider } from "@/providers/toast-provider";
 import { registerUnauthorizedHandler } from "@platform/api-client";
 
 type AppProvidersProps = {
@@ -37,5 +38,9 @@ export function AppProviders({ children }: AppProvidersProps) {
     });
   }, []);
 
-  return <AuthSessionProvider>{children}</AuthSessionProvider>;
+  return (
+    <ToastProvider>
+      <AuthSessionProvider>{children}</AuthSessionProvider>
+    </ToastProvider>
+  );
 }

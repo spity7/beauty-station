@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  CatalogFormActions,
-  CatalogFormError,
+  CatalogFormFooter,
   CatalogFormLayout,
   CatalogMediaUploadField,
   ControlledField,
@@ -13,18 +12,24 @@ import {
   collectRemovedHostedImages,
   createPendingCatalogFile,
   deleteHostedCatalogImages,
+  getCatalogFieldErrors,
+  getSavedCatalogImageUrls,
+  hasPendingCatalogImages,
   isHostedCatalogImageUrl,
   ProductAttributesFields,
   ReadOnlyField,
   revokePendingCatalogFile,
   StatusDot,
-  uploadCatalogImages,
+  uploadPendingCatalogImageUrls,
   type CatalogImagePreview,
   type PendingCatalogFile,
   type ProductFormAttribute,
 } from "@/components/catalog/catalog-form-primitives";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
+import { finishCatalogSave } from "@/lib/catalog-feedback";
+import { useToast } from "@/providers/toast-provider";
+import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import { createProductApi, updateProductApi } from "@platform/api-client";
 import type { ProductDto } from "@platform/shared";
 
@@ -39,8 +44,10 @@ type FormState = {
 
 type ProductCatalogFormProps = {
   attributes: ProductFormAttribute[];
-  categories: Array<{ id: string; name: string }>;
   brands: Array<{ id: string; name: string }>;
+  categories: Array<{ id: string; name: string }>;
+  defaultBrandId?: string;
+  defaultCategoryId?: string;
   initial?: ProductDto;
   mode: "add" | "edit";
 };
@@ -93,12 +100,15 @@ function revokeImageEntry(entry: CatalogImagePreview): void {
 
 export function ProductCatalogForm({
   attributes,
-  categories,
   brands,
+  categories,
+  defaultBrandId,
+  defaultCategoryId,
   initial,
   mode,
 }: ProductCatalogFormProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [name, setName] = useState(initial?.name ?? "");
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [compareAtPrice, setCompareAtPrice] = useState(
@@ -109,8 +119,12 @@ export function ProductCatalogForm({
   const [status, setStatus] = useState<ProductDto["status"]>(
     initial?.status ?? "draft"
   );
-  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
-  const [brandId, setBrandId] = useState(initial?.brandId ?? "");
+  const [categoryId, setCategoryId] = useState(
+    initial?.categoryId ?? defaultCategoryId ?? ""
+  );
+  const [brandId, setBrandId] = useState(
+    initial?.brandId ?? defaultBrandId ?? ""
+  );
   const [imageEntries, setImageEntries] = useState<CatalogImagePreview[]>(() =>
     (initial?.images ?? []).map(toSavedImageEntry)
   );
@@ -125,6 +139,14 @@ export function ProductCatalogForm({
     () => (initial?.images ?? []).filter(isHostedCatalogImageUrl),
     [initial?.images]
   );
+
+  const fieldErrors = useMemo(
+    () => getCatalogFieldErrors(formState.error),
+    [formState.error]
+  );
+  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+    loading: formState.loading,
+  });
 
   const imagePreviews = imageEntries;
   const imageEntriesRef = useRef(imageEntries);
@@ -152,27 +174,7 @@ export function ProductCatalogForm({
         (entry): entry is Extract<CatalogImagePreview, { kind: "pending" }> =>
           entry.kind === "pending"
       );
-      uploadedInThisAttempt = await uploadCatalogImages(
-        pendingEntries.map((entry) => entry.file),
-        "products"
-      );
-      let pendingUploadIndex = 0;
-      const finalImages = imageEntries.map((entry) => {
-        if (entry.kind === "saved") {
-          return entry.url;
-        }
-        const uploadedUrl = uploadedInThisAttempt[pendingUploadIndex];
-        pendingUploadIndex += 1;
-        if (!uploadedUrl) {
-          throw new Error("Failed to upload one or more product images.");
-        }
-        return uploadedUrl;
-      });
-
-      for (const entry of pendingEntries) {
-        revokeImageEntry(entry);
-      }
-      setImageEntries(finalImages.map(toSavedImageEntry));
+      const savedImages = getSavedCatalogImageUrls(imageEntries);
       const payload = {
         name,
         price: Number(price),
@@ -182,22 +184,49 @@ export function ProductCatalogForm({
         status,
         categoryId: categoryId || undefined,
         brandId: brandId || undefined,
-        images: finalImages,
+        images: savedImages,
         attributes: attributesPayload,
       };
 
+      let productId: string;
       if (mode === "add") {
-        await createProductApi(payload);
+        const created = await createProductApi(payload);
+        productId = created.id;
       } else if (initial) {
         await updateProductApi(initial.id, payload);
+        productId = initial.id;
+      } else {
+        throw new Error("Save failed");
+      }
+
+      let finalImages = savedImages;
+      if (hasPendingCatalogImages(imageEntries)) {
+        const uploaded = await uploadPendingCatalogImageUrls(
+          imageEntries,
+          "products"
+        );
+        uploadedInThisAttempt = uploaded.uploadedUrls;
+        finalImages = uploaded.urls;
+        await updateProductApi(productId, { images: finalImages });
+
+        for (const entry of pendingEntries) {
+          revokeImageEntry(entry);
+        }
+        setImageEntries(finalImages.map(toSavedImageEntry));
       }
 
       await deleteHostedCatalogImages(
         collectRemovedHostedImages(initialHostedImages, finalImages)
       );
 
-      router.push(routes.products);
-      router.refresh();
+      finishCatalogSave({
+        entity: "product",
+        listHref: routes.products,
+        mode,
+        name,
+        router,
+        showToast,
+      });
     } catch (error) {
       if (uploadedInThisAttempt.length > 0) {
         await deleteHostedCatalogImages(uploadedInThisAttempt);
@@ -234,7 +263,7 @@ export function ProductCatalogForm({
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form aria-busy={formState.loading} onSubmit={handleSubmit}>
       <CatalogFormLayout
         aside={
           <>
@@ -245,6 +274,7 @@ export function ProductCatalogForm({
               }
             >
               <ControlledSelect
+                disabled={disabled}
                 help="Draft products are hidden from published storefront views."
                 hideLabel
                 label="Status"
@@ -259,6 +289,7 @@ export function ProductCatalogForm({
             </FormCard>
             <ProductAttributesFields
               attributes={attributes}
+              disabled={disabled}
               onChange={setAttributeValues}
               values={attributeValues}
             />
@@ -267,8 +298,13 @@ export function ProductCatalogForm({
       >
         <FormCard title="General">
           <ControlledField
+            disabled={disabled}
+            error={fieldErrors.name}
             label="Product name"
-            onChange={setName}
+            onChange={(value) => {
+              setName(value);
+              setFormState((current) => ({ ...current, error: null }));
+            }}
             placeholder="Product name"
             required
             value={name}
@@ -291,6 +327,7 @@ export function ProductCatalogForm({
           <FormCard title="Pricing & inventory">
             <div className="grid gap-4 sm:grid-cols-3">
               <ControlledField
+                disabled={disabled}
                 label="Price"
                 onChange={setPrice}
                 placeholder="0.00"
@@ -299,6 +336,7 @@ export function ProductCatalogForm({
                 value={price}
               />
               <ControlledField
+                disabled={disabled}
                 help="Optional strikethrough price."
                 label="Compare at price"
                 onChange={setCompareAtPrice}
@@ -307,6 +345,7 @@ export function ProductCatalogForm({
                 value={compareAtPrice}
               />
               <ControlledField
+                disabled={disabled}
                 label="Stock"
                 onChange={setStock}
                 placeholder="0"
@@ -319,6 +358,7 @@ export function ProductCatalogForm({
           <FormCard title="Merchandising">
             <div className="grid gap-4 sm:grid-cols-2">
               <ControlledSelect
+                disabled={disabled}
                 label="Category"
                 onChange={setCategoryId}
                 options={[
@@ -331,6 +371,7 @@ export function ProductCatalogForm({
                 value={categoryId}
               />
               <ControlledSelect
+                disabled={disabled}
                 label="Brand"
                 onChange={setBrandId}
                 options={[
@@ -348,7 +389,7 @@ export function ProductCatalogForm({
         <div className="grid gap-4 md:grid-cols-2">
           <FormCard title="Media">
             <CatalogMediaUploadField
-              disabled={formState.loading}
+              disabled={disabled}
               helperText={
                 formState.loading
                   ? "Saving…"
@@ -364,6 +405,7 @@ export function ProductCatalogForm({
           </FormCard>
           <FormCard title="Description">
             <ControlledTextarea
+              disabled={disabled}
               help="Shown on the product detail page."
               label="Product description"
               minRows={5}
@@ -374,11 +416,13 @@ export function ProductCatalogForm({
           </FormCard>
         </div>
       </CatalogFormLayout>
-      <CatalogFormError message={formState.error} />
-      <CatalogFormActions
+      <CatalogFormFooter
         cancelHref={routes.products}
+        error={formState.error}
         loading={formState.loading}
+        onRequestLeave={requestLeave}
       />
+      {leaveDialog}
     </form>
   );
 }

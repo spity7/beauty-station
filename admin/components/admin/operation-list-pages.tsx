@@ -87,6 +87,7 @@ export function RoleListTable({ roles }: { roles: Role[] }) {
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This role will be permanently removed from access control. This action cannot be undone."
       editHref={routes.createRole}
@@ -180,6 +181,7 @@ export function OrderListTable({ orders }: { orders: Order[] }) {
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This order will be removed from the order list. This action cannot be undone."
       editHref={routes.editOrder}
@@ -248,6 +250,7 @@ export function CurrencyRatesTable({ rates }: { rates: CurrencyRate[] }) {
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This currency rate will be removed from localization settings."
       editHref={routes.currencyRates}
@@ -338,6 +341,7 @@ export function CouponListTable({ coupons }: { coupons: Coupon[] }) {
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This coupon will be permanently removed from marketing campaigns."
       editHref={routes.editCoupon}
@@ -430,6 +434,7 @@ export function ProductReviewListTable({
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This review will be removed from moderation."
       editHref={routes.productReviews}
@@ -529,6 +534,7 @@ export function SupportTicketListTable({
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This support ticket will be removed from the queue."
       editHref={routes.supportTickets}
@@ -601,6 +607,7 @@ export function TemplateListTable({ items }: { items: TemplateListItem[] }) {
 
   return (
     <EntityTable
+      enableColumnToggle
       columns={columns}
       deleteMessage="This item will be removed from the reusable list."
       editHref={routes.listPage}
