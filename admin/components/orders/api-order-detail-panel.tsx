@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { fetchOrder, platformApi } from "@platform/api-client";
+import { useBusyActionGuard } from "@platform/react-busy";
 import type { OrderDto, OrderStatus } from "@platform/shared";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { Icon } from "@/components/layout/icon";
@@ -59,6 +60,8 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { disabled } = useBusyActionGuard({ active: updatingStatus });
 
   const loadOrder = useCallback(async () => {
     setError(null);
@@ -79,11 +82,12 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
   }, [loadOrder]);
 
   async function handleStatusChange(status: OrderStatus) {
-    if (!order) {
+    if (!order || updatingStatus) {
       return;
     }
 
     setStatusError(null);
+    setUpdatingStatus(true);
     try {
       await platformApi.updateOrder(order.id, { status });
       await loadOrder();
@@ -91,6 +95,8 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
       setStatusError(
         err instanceof Error ? err.message : "Unable to update order status."
       );
+    } finally {
+      setUpdatingStatus(false);
     }
   }
 
@@ -129,13 +135,24 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
             Placed {formatDateTime(order.createdAt)}
           </p>
         </div>
-        <Link
-          aria-label="Back to orders"
-          className="grid h-11 w-11 place-items-center rounded-base border border-surface-line text-ink-700 hover:bg-surface-muted"
-          href={routes.orders}
-        >
-          <Icon className="h-4 w-4" name="arrow-left" />
-        </Link>
+        {disabled ? (
+          <button
+            aria-label="Back to orders"
+            className="grid h-11 w-11 cursor-not-allowed place-items-center rounded-base border border-surface-line text-ink-700 opacity-60"
+            disabled
+            type="button"
+          >
+            <Icon className="h-4 w-4" name="arrow-left" />
+          </button>
+        ) : (
+          <Link
+            aria-label="Back to orders"
+            className="grid h-11 w-11 place-items-center rounded-base border border-surface-line text-ink-700 hover:bg-surface-muted"
+            href={routes.orders}
+          >
+            <Icon className="h-4 w-4" name="arrow-left" />
+          </Link>
+        )}
       </div>
 
       <section className="mb-6 grid gap-6 lg:grid-cols-3">
@@ -148,7 +165,9 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
             label={capitalize(order.status)}
           />
           <select
-            className="mt-4 w-full rounded-base border border-ink-200 px-3 py-2 text-[14px]"
+            aria-busy={updatingStatus}
+            className="mt-4 w-full rounded-base border border-ink-200 px-3 py-2 text-[14px] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             value={order.status}
             onChange={(event) =>
               void handleStatusChange(event.target.value as OrderStatus)
@@ -162,6 +181,11 @@ export function ApiOrderDetailPanel({ orderId }: ApiOrderDetailPanelProps) {
           </select>
           {statusError ? (
             <p className="mt-3 text-[13px] text-error-600">{statusError}</p>
+          ) : null}
+          {updatingStatus ? (
+            <p className="mt-3 text-[13px] font-medium text-brand-600">
+              Updating status…
+            </p>
           ) : null}
         </article>
 

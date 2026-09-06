@@ -109,8 +109,8 @@ export type AttributeDtoStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const AttributeDtoStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export interface AttributeDto {
@@ -361,8 +361,8 @@ export type CreateAttributeInputStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CreateAttributeInputStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export interface CreateAttributeInput {
@@ -398,8 +398,8 @@ export type UpdateAttributeInputStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const UpdateAttributeInputStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export interface UpdateAttributeInput {
@@ -561,8 +561,8 @@ export type PaginatedAttributesDataItemStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PaginatedAttributesDataItemStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type PaginatedAttributesDataItem = {
@@ -2021,8 +2021,8 @@ export type ListAttribute200DataItemStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ListAttribute200DataItemStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type ListAttribute200DataItem = {
@@ -2060,8 +2060,8 @@ export type CreateAttributeBodyStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CreateAttributeBodyStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type CreateAttributeBody = {
@@ -2097,8 +2097,8 @@ export type CreateAttribute201Status =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const CreateAttribute201Status = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type CreateAttribute201 = {
@@ -2144,8 +2144,8 @@ export type GetAttribute200Status =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetAttribute200Status = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type GetAttribute200 = {
@@ -2180,8 +2180,8 @@ export type UpdateAttributeBodyStatus =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const UpdateAttributeBodyStatus = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type UpdateAttributeBody = {
@@ -2217,8 +2217,8 @@ export type UpdateAttribute200Status =
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const UpdateAttribute200Status = {
-  active: "active",
   draft: "draft",
+  published: "published",
 } as const;
 
 export type UpdateAttribute200 = {

@@ -50,7 +50,7 @@ export const generalSeedData: SiteSeedData = {
       slug: "material",
       displayType: "Dropdown",
       description: "Primary product material.",
-      status: "active",
+      status: "published",
       values: ["Cotton", "Metal", "Plastic"],
     },
   ],

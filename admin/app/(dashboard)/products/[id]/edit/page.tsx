@@ -39,7 +39,7 @@ export default async function EditProductPage({
     await Promise.all([
       fetchCategories({ limit: 100 }),
       fetchBrands({ limit: 100 }),
-      fetchAttributes({ limit: 100, status: "active" }),
+      fetchAttributes({ limit: 100, status: "published" }),
       fetchAttributes({ limit: 100 }),
     ]);
 

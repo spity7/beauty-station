@@ -9,6 +9,7 @@ import {
   getPasswordValidationError,
 } from "@platform/shared";
 import { ApiError, resetPassword } from "@platform/api-client";
+import { useBusyActionGuard } from "@platform/react-busy";
 import { routes } from "@/config/routes";
 
 function passwordStrengthHint(password: string): string {
@@ -28,6 +29,7 @@ export function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { disabled } = useBusyActionGuard({ active: loading });
   const [done, setDone] = useState(false);
 
   const strengthLabel = getPasswordStrengthLabel(newPassword);
@@ -104,6 +106,7 @@ export function ResetPasswordForm() {
 
   return (
     <form
+      aria-busy={loading}
       className="w-full max-w-[440px] rounded-card border border-surface-line bg-surface-card p-6 shadow-card"
       onSubmit={handleResetPassword}
     >
@@ -127,7 +130,8 @@ export function ResetPasswordForm() {
           </span>
           <input
             autoComplete="new-password"
-            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600"
+            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             minLength={8}
             onChange={(e) => setNewPassword(e.target.value)}
             required
@@ -150,7 +154,8 @@ export function ResetPasswordForm() {
           </span>
           <input
             autoComplete="new-password"
-            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600"
+            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             minLength={8}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required

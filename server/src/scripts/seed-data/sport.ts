@@ -50,7 +50,7 @@ export const sportSeedData: SiteSeedData = {
       slug: "size",
       displayType: "Dropdown",
       description: "Apparel and gear size.",
-      status: "active",
+      status: "published",
       values: ["S", "M", "L", "XL"],
     },
     {
@@ -58,7 +58,7 @@ export const sportSeedData: SiteSeedData = {
       slug: "activity",
       displayType: "Dropdown",
       description: "Primary sport or activity.",
-      status: "active",
+      status: "published",
       values: ["Gym", "Running", "Hiking"],
     },
   ],

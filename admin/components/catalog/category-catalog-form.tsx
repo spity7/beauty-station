@@ -70,7 +70,7 @@ export function CategoryCatalogForm({
     () => getCatalogFieldErrors(formState.error),
     [formState.error]
   );
-  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+  const { disabled } = useCatalogFormLeaveGuard({
     loading: formState.loading,
   });
 
@@ -215,7 +215,6 @@ export function CategoryCatalogForm({
           disabled={disabled}
           emptyDescription="Add a product and choose this category in the product form."
           entityLabel="category"
-          onRequestLeave={requestLeave}
           products={assignedProducts}
           productsHref={productsListPath({ categoryId: initial.id })}
         />
@@ -224,9 +223,7 @@ export function CategoryCatalogForm({
         cancelHref={routes.categories}
         error={formState.error}
         loading={formState.loading}
-        onRequestLeave={requestLeave}
       />
-      {leaveDialog}
     </form>
   );
 }

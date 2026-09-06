@@ -76,7 +76,7 @@ export function BrandCatalogForm({
     () => getCatalogFieldErrors(formState.error),
     [formState.error]
   );
-  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+  const { disabled } = useCatalogFormLeaveGuard({
     loading: formState.loading,
   });
 
@@ -222,7 +222,6 @@ export function BrandCatalogForm({
           disabled={disabled}
           emptyDescription="Add a product and choose this brand in the product form."
           entityLabel="brand"
-          onRequestLeave={requestLeave}
           products={assignedProducts}
           productsHref={productsListPath({ brandId: initial.id })}
         />
@@ -231,9 +230,7 @@ export function BrandCatalogForm({
         cancelHref={routes.brands}
         error={formState.error}
         loading={formState.loading}
-        onRequestLeave={requestLeave}
       />
-      {leaveDialog}
     </form>
   );
 }

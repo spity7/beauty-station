@@ -9,7 +9,7 @@ Run from **repo root** unless noted.
 | Command                           | Purpose                                                |
 | --------------------------------- | ------------------------------------------------------ |
 | `npm install`                     | Install all workspaces                                 |
-| `npm run build:packages`          | Build shared → site-config → api-client                |
+| `npm run build:packages`          | Build shared → site-config → react-busy → api-client   |
 | `npm run dev:server`              | API on :5000 (`predev`: api:ensure + build:packages)   |
 | `npm run dev:admin`               | Admin on :3001                                         |
 | `npm run dev:client`              | Storefront on :3000                                    |

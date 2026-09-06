@@ -24,7 +24,7 @@ export type Brand = {
 export type Attribute = {
   name: string;
   products: number;
-  status: Extract<Status, "active" | "draft">;
+  status: Extract<Status, "draft" | "published">;
   type: "Dropdown" | "Swatch" | "Text";
   values: string[];
 };
@@ -231,14 +231,14 @@ export const attributes: Attribute[] = [
   {
     name: "Color",
     products: 128,
-    status: "active",
+    status: "published",
     type: "Swatch",
     values: ["Red", "Blue", "Green", "Black"],
   },
   {
     name: "Size",
     products: 96,
-    status: "active",
+    status: "published",
     type: "Dropdown",
     values: ["XS", "S", "M", "L", "XL"],
   },

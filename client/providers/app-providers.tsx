@@ -2,6 +2,7 @@
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useEffect, type ReactNode } from "react";
+import { BusyProvider, BusyViewportOverlay } from "@platform/react-busy";
 import { registerUnauthorizedHandler } from "@platform/api-client";
 import { isAuthPublicPath } from "@/lib/auth-public-paths";
 import { tryRefreshSession } from "@/lib/refresh-session";
@@ -33,13 +34,16 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const session = (
-    <AuthSessionProvider>
-      <CartSessionSync />
-      <CartSyncErrorListener />
-      <WishlistSessionSync />
-      <WishlistSyncErrorListener />
-      {children}
-    </AuthSessionProvider>
+    <BusyProvider>
+      <AuthSessionProvider>
+        <CartSessionSync />
+        <CartSyncErrorListener />
+        <WishlistSessionSync />
+        <WishlistSyncErrorListener />
+        {children}
+      </AuthSessionProvider>
+      <BusyViewportOverlay zIndex={1040} />
+    </BusyProvider>
   );
 
   if (!googleClientId) {

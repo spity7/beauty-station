@@ -65,7 +65,7 @@ export function AttributeCatalogForm({
     () => getCatalogFieldErrors(formState.error),
     [formState.error]
   );
-  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+  const { disabled } = useCatalogFormLeaveGuard({
     loading: formState.loading,
   });
 
@@ -174,21 +174,18 @@ export function AttributeCatalogForm({
           <FormCard
             title="Status"
             titleEnd={
-              <StatusDot
-                active={status === "active"}
-                variant={status === "active" ? "active" : "draft"}
-              />
+              <StatusDot active={status === "published"} variant={status} />
             }
           >
             <ControlledSelect
               disabled={disabled}
-              help="Draft attributes are hidden from product forms."
+              help="Draft attributes are hidden from product forms. Published attributes appear in the product attribute picker."
               hideLabel
               label="Status"
               onChange={(value) => setStatus(value as AttributeDto["status"])}
               options={[
                 { label: "Draft", value: "draft" },
-                { label: "Active", value: "active" },
+                { label: "Published", value: "published" },
               ]}
               value={status}
             />
@@ -202,7 +199,6 @@ export function AttributeCatalogForm({
           disabled={disabled}
           emptyDescription="Products will appear here once this attribute is set on a product."
           entityLabel="attribute"
-          onRequestLeave={requestLeave}
           products={assignedProducts}
           productsHref={productsListPath({ attributeSlug: initial.slug })}
           title="Product usage"
@@ -212,9 +208,7 @@ export function AttributeCatalogForm({
         cancelHref={routes.attributes}
         error={formState.error}
         loading={formState.loading}
-        onRequestLeave={requestLeave}
       />
-      {leaveDialog}
     </form>
   );
 }

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
+import { useSubmitBusy } from "@platform/react-busy";
 import { usePathname } from "next/navigation";
 import { useUiElement } from "@/context/Context";
 import { useManagedModalPanel } from "@/hooks/useManagedModalPanel";
@@ -11,6 +12,7 @@ export default function NewsLetterModal() {
 
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { disabled } = useSubmitBusy(isSubmitting);
   const [hasBeenShown, setHasBeenShown] = useState(false);
   const { openBsModal, showToaster } = useUiElement();
   const { close } = useManagedModalPanel("newsletterModal");
@@ -131,6 +133,7 @@ export default function NewsLetterModal() {
                     prices.
                   </p>
                   <form
+                    aria-busy={isSubmitting}
                     id="rbtSubscribe-form"
                     action="#"
                     className="form-newsletter"
@@ -139,6 +142,7 @@ export default function NewsLetterModal() {
                     <div className="rbt-input-field-grp">
                       <input
                         className="rbt-input-field"
+                        disabled={disabled}
                         type="email"
                         placeholder="Your Email Address *"
                         name="email"
@@ -157,8 +161,8 @@ export default function NewsLetterModal() {
                   </form>
                   <div className="text-center">
                     <button
-                      type="button"
                       className="rbt-btn w-100 text-center rbt-btn-naked radius-round-6 d-block"
+                      disabled={isSubmitting}
                       onClick={() => {
                         close();
                         localStorage.setItem(`newsletter-dismissed`, "true");

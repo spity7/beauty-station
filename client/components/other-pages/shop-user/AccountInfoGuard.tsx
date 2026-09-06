@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useBusyLock } from "@platform/react-busy";
 
 type SectionState = {
   busy: boolean;
@@ -64,6 +65,8 @@ export function AccountInfoGuardProvider({
     () => Object.values(sections).some((section) => section.dirty),
     [sections]
   );
+
+  useBusyLock(isAnyBusy);
 
   useEffect(() => {
     if (!isAnyBusy && !isAnyDirty) {

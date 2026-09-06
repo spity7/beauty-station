@@ -224,14 +224,14 @@ describe("catalog API", () => {
       .send({
         name: `Color ${Date.now()}`,
         displayType: "Swatch",
-        status: "active",
+        status: "published",
         values: ["Red", "Blue"],
       })
       .expect(201);
 
     const response = await request(app)
       .get("/api/attributes")
-      .query({ status: "active" })
+      .query({ status: "published" })
       .expect(200);
 
     assert.ok(response.body.total >= 1);
@@ -385,7 +385,7 @@ describe("catalog API", () => {
       .send({
         name: `Finish ${suffix}`,
         displayType: "Dropdown",
-        status: "active",
+        status: "published",
         values: ["Matte", "Gloss"],
       })
       .expect(201);
@@ -434,7 +434,7 @@ describe("catalog API", () => {
       .send({
         name: `Blocked Attribute ${suffix}`,
         displayType: "Dropdown",
-        status: "active",
+        status: "published",
         values: ["Small", "Large"],
       })
       .expect(201);
@@ -546,7 +546,7 @@ describe("catalog API", () => {
       .send({
         name: `Finish Guard ${suffix}`,
         displayType: "Dropdown",
-        status: "active",
+        status: "published",
         values: ["Matte", "Gloss"],
       })
       .expect(201);

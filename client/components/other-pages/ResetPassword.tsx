@@ -6,6 +6,7 @@ import ReviewSlider from "./ReviewSlider";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, resetPassword } from "@platform/api-client";
+import { useSubmitBusy } from "@platform/react-busy";
 import { useUiElement } from "@/context/uiStore";
 import {
   getPasswordStrength,
@@ -188,6 +189,7 @@ function ResetPasswordLayout({
   passwordError,
   onReset,
 }: ResetPasswordLayoutProps) {
+  const { disabled } = useSubmitBusy(loading);
   const missingRequirements = getMissingPasswordRequirements(newPassword);
   const strengthHint =
     strength.label === "Strong"
@@ -205,14 +207,25 @@ function ResetPasswordLayout({
               <div className="rbt-login-form-inner">
                 <div className="rbt-login-form-top">
                   <div className="logo">
-                    <Link href={`/`}>
-                      <Image
-                        alt="Ecommerce Logo Images"
-                        src="/assets/images/logo/logo.webp"
-                        width={1487}
-                        height={334}
-                      />
-                    </Link>
+                    {disabled ? (
+                      <span className="d-inline-block pe-none opacity-50">
+                        <Image
+                          alt="Ecommerce Logo Images"
+                          src="/assets/images/logo/logo.webp"
+                          width={1487}
+                          height={334}
+                        />
+                      </span>
+                    ) : (
+                      <Link href={`/`}>
+                        <Image
+                          alt="Ecommerce Logo Images"
+                          src="/assets/images/logo/logo.webp"
+                          width={1487}
+                          height={334}
+                        />
+                      </Link>
+                    )}
                   </div>
                   <h6 className="rbt-title rbt-text-bold mb--16">
                     Reset Password
@@ -254,6 +267,7 @@ function ResetPasswordLayout({
                     </div>
                   ) : (
                     <form
+                      aria-busy={loading}
                       onSubmit={(e) => {
                         e.preventDefault();
                         onReset();
@@ -273,6 +287,7 @@ function ResetPasswordLayout({
                         <div className="position-relative">
                           <input
                             className="rbt-input-field"
+                            disabled={disabled}
                             type={showPassword ? "text" : "password"}
                             id="reset_page_new_password"
                             value={newPassword}
@@ -312,6 +327,7 @@ function ResetPasswordLayout({
                         <div className="position-relative">
                           <input
                             className="rbt-input-field"
+                            disabled={disabled}
                             type={showConfirmPassword ? "text" : "password"}
                             id="reset_page_confirm_password"
                             value={confirmPassword}
@@ -351,9 +367,15 @@ function ResetPasswordLayout({
                   )}
 
                   <div className="rbt-login-system-switch rbt-link-hover mt--24">
-                    <Link className="rbt-switch-btn" href={`/signin`}>
-                      <span>Back to sign in</span>
-                    </Link>
+                    {disabled ? (
+                      <span className="rbt-switch-btn pe-none opacity-50">
+                        <span>Back to sign in</span>
+                      </span>
+                    ) : (
+                      <Link className="rbt-switch-btn" href={`/signin`}>
+                        <span>Back to sign in</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
                 <ReviewSlider />

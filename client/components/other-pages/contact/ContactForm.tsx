@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useSubmitBusy } from "@platform/react-busy";
 import { WaveLongIcon } from "../../svg-icons";
 
 export default function ContactForm() {
   const [validated, setValidated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { disabled } = useSubmitBusy(isSubmitting);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -90,6 +92,7 @@ export default function ContactForm() {
                 </label>
                 <input
                   className="rbt-contact-input-field form-control"
+                  disabled={disabled}
                   type="text"
                   id="f_name"
                   name="firstName"
@@ -107,6 +110,7 @@ export default function ContactForm() {
                 </label>
                 <input
                   className="rbt-contact-input-field form-control"
+                  disabled={disabled}
                   type="text"
                   id="l_name"
                   name="lastName"
@@ -124,6 +128,7 @@ export default function ContactForm() {
                 </label>
                 <input
                   className="rbt-contact-input-field form-control"
+                  disabled={disabled}
                   type="email"
                   id="email"
                   name="email"
@@ -141,6 +146,7 @@ export default function ContactForm() {
                 </label>
                 <textarea
                   className="rbt-contact-input-field form-control"
+                  disabled={disabled}
                   name="message"
                   id="message"
                   rows={6}

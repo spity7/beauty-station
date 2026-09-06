@@ -8,6 +8,7 @@ import { routes } from "@/config/routes";
 import { adminBrandName } from "@/lib/brand";
 import { notifyAuthSessionUpdated } from "@/lib/session";
 import { setAccessToken } from "@platform/api-client";
+import { useBusyActionGuard } from "@platform/react-busy";
 import { useAuthSession } from "@/providers/auth-session-provider";
 
 export function SignInForm() {
@@ -17,6 +18,7 @@ export function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { disabled } = useBusyActionGuard({ active: loading });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -59,6 +61,7 @@ export function SignInForm() {
 
   return (
     <form
+      aria-busy={loading}
       className="w-full max-w-[440px] rounded-card border border-surface-line bg-surface-card p-6 shadow-card relative"
       onSubmit={handleSubmit}
     >
@@ -81,7 +84,8 @@ export function SignInForm() {
           </span>
           <input
             autoComplete="email"
-            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600"
+            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             onChange={(e) => setEmail(e.target.value)}
             required
             type="email"
@@ -94,7 +98,8 @@ export function SignInForm() {
           </span>
           <input
             autoComplete="current-password"
-            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600"
+            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             onChange={(e) => setPassword(e.target.value)}
             required
             type="password"
@@ -102,12 +107,16 @@ export function SignInForm() {
           />
         </label>
         <p className="text-right text-[13px]">
-          <Link
-            className="font-semibold text-brand-600 hover:text-brand-700"
-            href={routes.forgotPassword}
-          >
-            Forgot password?
-          </Link>
+          {disabled ? (
+            <span className="font-semibold text-ink-400">Forgot password?</span>
+          ) : (
+            <Link
+              className="font-semibold text-brand-600 hover:text-brand-700"
+              href={routes.forgotPassword}
+            >
+              Forgot password?
+            </Link>
+          )}
         </p>
       </div>
 

@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build:packages": "npm run build -w @platform/shared && npm run build -w @platform/site-config && npm run build -w @platform/api-client",
+    "build:packages": "npm run build -w @platform/shared && npm run build -w @platform/site-config && npm run build -w @platform/react-busy && npm run build -w @platform/api-client",
     "openapi:generate": "npm run build -w @platform/shared && npm run openapi:generate -w @platform/server",
     "api:generate": "npm run generate -w @platform/api-client",
     "api:ensure": "npm run ensure -w @platform/api-client",
@@ -26,7 +26,7 @@
     "seed": "npm run seed -w @platform/server",
     "seed:admin": "npm run seed:admin -w @platform/server",
     "create-site": "tsx scripts/create-site.ts",
-    "typecheck": "npm run typecheck -w @platform/shared && npm run typecheck -w @platform/site-config && npm run typecheck -w @platform/api-client && npm run typecheck -w @platform/server && tsc --noEmit -p admin && tsc --noEmit -p client && tsc --noEmit -p tsconfig.json",
+    "typecheck": "npm run typecheck -w @platform/shared && npm run typecheck -w @platform/site-config && npm run typecheck -w @platform/react-busy && npm run typecheck -w @platform/api-client && npm run typecheck -w @platform/server && tsc --noEmit -p admin && tsc --noEmit -p client && tsc --noEmit -p tsconfig.json",
     "test": "npm run build:packages && npm run test -w @platform/server",
     "test:ci": "npm run test"
   },

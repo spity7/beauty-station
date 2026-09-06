@@ -20,7 +20,7 @@ export type SeedAttribute = {
   slug: string;
   displayType: "Dropdown" | "Swatch" | "Text";
   description: string;
-  status: "active" | "draft";
+  status: "published" | "draft";
   values: string[];
 };
 

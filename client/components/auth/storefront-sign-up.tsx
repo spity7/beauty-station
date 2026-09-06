@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { setAccessToken, ApiError } from "@platform/api-client";
+import { useSubmitBusy } from "@platform/react-busy";
 import type { AuthResponse } from "@platform/shared";
 import { getPhoneValidationError } from "@platform/shared";
 import { mergeGuestCartIfNeeded } from "@/lib/guest-cart-merge";
@@ -26,6 +27,7 @@ export function StorefrontSignUpForm() {
   const defaultPhoneCountry = getStorefrontDefaultPhoneCountry();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { disabled } = useSubmitBusy(submitting);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,13 +80,14 @@ export function StorefrontSignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form aria-busy={submitting} onSubmit={handleSubmit}>
       <div className="rbt-input-field-grp">
         <label className="rbt-field-label" htmlFor="signup_name">
           Full name <span className="rbt-text-color-danger">*</span>
         </label>
         <input
           className="rbt-input-field"
+          disabled={disabled}
           type="text"
           id="signup_name"
           value={name}
@@ -99,6 +102,7 @@ export function StorefrontSignUpForm() {
         </label>
         <input
           className="rbt-input-field"
+          disabled={disabled}
           type="email"
           id="signup_email"
           value={email}
@@ -109,6 +113,7 @@ export function StorefrontSignUpForm() {
       </div>
       <div className="mt--16">
         <StorefrontPhoneInput
+          disabled={disabled}
           id="signup_phone"
           label="Phone"
           value={phone}
@@ -128,6 +133,7 @@ export function StorefrontSignUpForm() {
         <div className="position-relative">
           <input
             className="rbt-input-field"
+            disabled={disabled}
             type={showPassword ? "text" : "password"}
             id="signup_password"
             value={password}
@@ -162,9 +168,15 @@ export function StorefrontSignUpForm() {
       </button>
       <div className="rbt-login-system-switch rbt-link-hover">
         Already have an account?{" "}
-        <Link className="rbt-switch-btn ml--4" href={buildSignInPath()}>
-          <span>Sign in</span>
-        </Link>
+        {disabled ? (
+          <span className="rbt-switch-btn ml--4 pe-none opacity-50">
+            <span>Sign in</span>
+          </span>
+        ) : (
+          <Link className="rbt-switch-btn ml--4" href={buildSignInPath()}>
+            <span>Sign in</span>
+          </Link>
+        )}
       </div>
     </form>
   );

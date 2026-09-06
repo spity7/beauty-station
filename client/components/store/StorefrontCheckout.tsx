@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSubmitBusy } from "@platform/react-busy";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiError,
@@ -41,6 +42,7 @@ export default function StorefrontCheckout() {
   const defaultPhoneCountry = getStorefrontDefaultPhoneCountry();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { disabled } = useSubmitBusy(submitting);
   const [cartReady, setCartReady] = useState(false);
   const orderInFlightRef = useRef(false);
 
@@ -217,7 +219,7 @@ export default function StorefrontCheckout() {
       <div className="col-12 col-lg-7 mt--24">
         <div className="rbt-transparent-table-one-wrapper rbt-has-bg-gray p--24">
           <h5 className="title mb--24">Shipping details</h5>
-          <form onSubmit={handleSubmit}>
+          <form aria-busy={submitting} onSubmit={handleSubmit}>
             <div className="rbt-input-field-grp">
               <label className="rbt-field-label" htmlFor="checkout_name">
                 Full name
@@ -225,6 +227,7 @@ export default function StorefrontCheckout() {
               <input
                 id="checkout_name"
                 className="rbt-input-field"
+                disabled={disabled}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 required
@@ -237,6 +240,7 @@ export default function StorefrontCheckout() {
               <input
                 id="checkout_line1"
                 className="rbt-input-field"
+                disabled={disabled}
                 value={line1}
                 onChange={(event) => setLine1(event.target.value)}
                 required
@@ -249,6 +253,7 @@ export default function StorefrontCheckout() {
               <input
                 id="checkout_city"
                 className="rbt-input-field"
+                disabled={disabled}
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
                 required
@@ -261,6 +266,7 @@ export default function StorefrontCheckout() {
               <input
                 id="checkout_country"
                 className="rbt-input-field"
+                disabled={disabled}
                 value={country}
                 onChange={(event) => setCountry(event.target.value)}
                 required
@@ -268,6 +274,7 @@ export default function StorefrontCheckout() {
             </div>
             <div className="mt--16">
               <StorefrontPhoneInput
+                disabled={disabled}
                 id="checkout_phone"
                 label="Phone"
                 value={phone}

@@ -2,7 +2,7 @@
 
 Multipurpose ecommerce monorepo: one codebase, many site deployments.
 
-**Last reviewed:** 2026-09-05. See [AI-INDEX.md](AI-INDEX.md) for the full doc map and tree.
+**Last reviewed:** 2026-09-06. See [AI-INDEX.md](AI-INDEX.md) for the full doc map and tree.
 
 ## Layout
 
@@ -13,6 +13,7 @@ ecommerce-platform/
 ├── server/                 # API — npm @platform/server (Express + MongoDB)
 ├── packages/
 │   ├── shared/             # Types + Zod schemas (validation + OpenAPI source)
+│   ├── react-busy/         # Shared React busy-state provider + viewport overlay
 │   ├── api-client/         # OpenAPI artifact, Orval config, generated client
 │   └── site-config/        # Site registry + getSiteConfig()
 ├── sites/
@@ -241,7 +242,7 @@ Site-specific modules are defined in site config (`features.*`). Admin navigatio
 
 - Tailwind 4 + Biome lint + Prettier.
 - Optional `basePath` from `NEXT_PUBLIC_BASE_URL` in `admin/next.config.ts`.
-- Catalog list + CRUD pages use `@platform/api-client`. Production forms in `components/catalog/*-catalog-form.tsx` (shared UI in `catalog-form-primitives.tsx`); slugs are server-generated. Product form includes active-attribute picker. Nav items with `feature` keys respect `SiteConfig.features`.
+- Catalog list + CRUD pages use `@platform/api-client`. Production forms in `components/catalog/*-catalog-form.tsx` (shared UI in `catalog-form-primitives.tsx`); slugs are server-generated. Product form includes published-attribute picker. Nav items with `feature` keys respect `SiteConfig.features`.
 
 ## Tooling
 

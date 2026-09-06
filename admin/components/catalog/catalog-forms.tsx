@@ -144,7 +144,7 @@ export function ProductCatalogForm({
     () => getCatalogFieldErrors(formState.error),
     [formState.error]
   );
-  const { disabled, leaveDialog, requestLeave } = useCatalogFormLeaveGuard({
+  const { disabled } = useCatalogFormLeaveGuard({
     loading: formState.loading,
   });
 
@@ -420,9 +420,7 @@ export function ProductCatalogForm({
         cancelHref={routes.products}
         error={formState.error}
         loading={formState.loading}
-        onRequestLeave={requestLeave}
       />
-      {leaveDialog}
     </form>
   );
 }

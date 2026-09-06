@@ -12,7 +12,7 @@ const attributeSchema = new Schema(
     description: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["active", "draft"],
+      enum: ["draft", "published"],
       default: "draft",
     },
     values: { type: [String], default: [] },

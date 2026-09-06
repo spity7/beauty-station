@@ -235,7 +235,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "draft"]
+            "enum": ["draft", "published"]
           },
           "values": {
             "type": "array",
@@ -568,7 +568,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "draft"],
+            "enum": ["draft", "published"],
             "default": "draft"
           },
           "values": {
@@ -605,7 +605,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "draft"]
+            "enum": ["draft", "published"]
           },
           "values": {
             "type": "array",
@@ -911,7 +911,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["active", "draft"]
+                  "enum": ["draft", "published"]
                 },
                 "values": {
                   "type": "array",
@@ -4423,7 +4423,7 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": ["active", "draft"]
+                            "enum": ["draft", "published"]
                           },
                           "values": {
                             "type": "array",
@@ -4511,7 +4511,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["active", "draft"],
+                    "enum": ["draft", "published"],
                     "default": "draft"
                   },
                   "values": {
@@ -4554,7 +4554,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["active", "draft"]
+                      "enum": ["draft", "published"]
                     },
                     "values": {
                       "type": "array",
@@ -4693,7 +4693,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["active", "draft"]
+                      "enum": ["draft", "published"]
                     },
                     "values": {
                       "type": "array",
@@ -4794,7 +4794,7 @@
                   },
                   "status": {
                     "type": "string",
-                    "enum": ["active", "draft"]
+                    "enum": ["draft", "published"]
                   },
                   "values": {
                     "type": "array",
@@ -4834,7 +4834,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["active", "draft"]
+                      "enum": ["draft", "published"]
                     },
                     "values": {
                       "type": "array",

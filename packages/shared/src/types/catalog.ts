@@ -10,7 +10,7 @@ export type BrandStatus = (typeof BRAND_STATUSES)[number];
 export const BRAND_VISIBILITY = ["Featured", "Standard", "Hidden"] as const;
 export type BrandVisibility = (typeof BRAND_VISIBILITY)[number];
 
-export const ATTRIBUTE_STATUSES = ["active", "draft"] as const;
+export const ATTRIBUTE_STATUSES = ["draft", "published"] as const;
 export type AttributeStatus = (typeof ATTRIBUTE_STATUSES)[number];
 
 export const ATTRIBUTE_DISPLAY_TYPES = ["Dropdown", "Swatch", "Text"] as const;

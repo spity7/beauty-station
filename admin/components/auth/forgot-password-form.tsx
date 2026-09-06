@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ApiError, forgotPassword } from "@platform/api-client";
+import { useBusyActionGuard } from "@platform/react-busy";
 import { routes } from "@/config/routes";
 import { adminBrandName } from "@/lib/brand";
 
@@ -15,6 +16,7 @@ export function ForgotPasswordForm() {
   const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { disabled } = useBusyActionGuard({ active: loading });
 
   async function handleSendLink(event: React.FormEvent) {
     event.preventDefault();
@@ -60,9 +62,13 @@ export function ForgotPasswordForm() {
         {devResetUrl ? (
           <p className="mt-4 text-[13px] text-ink-500">
             Dev reset link:{" "}
-            <Link className="font-semibold text-brand-600" href={devResetUrl}>
-              Open reset page
-            </Link>
+            {disabled ? (
+              <span className="font-semibold text-ink-400">Open reset page</span>
+            ) : (
+              <Link className="font-semibold text-brand-600" href={devResetUrl}>
+                Open reset page
+              </Link>
+            )}
           </p>
         ) : null}
 
@@ -76,12 +82,16 @@ export function ForgotPasswordForm() {
         </button>
 
         <p className="mt-4 text-center text-[14px] text-ink-500">
-          <Link
-            className="font-semibold text-brand-600 hover:text-brand-700"
-            href={routes.signIn}
-          >
-            Back to sign in
-          </Link>
+          {disabled ? (
+            <span className="font-semibold text-ink-400">Back to sign in</span>
+          ) : (
+            <Link
+              className="font-semibold text-brand-600 hover:text-brand-700"
+              href={routes.signIn}
+            >
+              Back to sign in
+            </Link>
+          )}
         </p>
       </div>
     );
@@ -89,6 +99,7 @@ export function ForgotPasswordForm() {
 
   return (
     <form
+      aria-busy={loading}
       className="w-full max-w-[440px] rounded-card border border-surface-line bg-surface-card p-6 shadow-card"
       onSubmit={handleSendLink}
     >
@@ -112,7 +123,8 @@ export function ForgotPasswordForm() {
           </span>
           <input
             autoComplete="email"
-            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600"
+            className="mt-2 h-11 w-full rounded-base border border-surface-line bg-surface-body px-4 text-[14px] focus:border-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             onChange={(e) => setEmail(e.target.value)}
             required
             type="email"
@@ -134,12 +146,16 @@ export function ForgotPasswordForm() {
       </button>
 
       <p className="mt-4 text-center text-[14px] text-ink-500">
-        <Link
-          className="font-semibold text-brand-600 hover:text-brand-700"
-          href={routes.signIn}
-        >
-          Back to sign in
-        </Link>
+        {disabled ? (
+          <span className="font-semibold text-ink-400">Back to sign in</span>
+        ) : (
+          <Link
+            className="font-semibold text-brand-600 hover:text-brand-700"
+            href={routes.signIn}
+          >
+            Back to sign in
+          </Link>
+        )}
       </p>
     </form>
   );

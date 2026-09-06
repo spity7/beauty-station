@@ -56,7 +56,7 @@ export const beautySeedData: SiteSeedData = {
       slug: "skin-type",
       displayType: "Dropdown",
       description: "Recommended skin type for the product.",
-      status: "active",
+      status: "published",
       values: ["Oily", "Dry", "Combination", "Sensitive"],
     },
     {
@@ -64,7 +64,7 @@ export const beautySeedData: SiteSeedData = {
       slug: "spf-level",
       displayType: "Dropdown",
       description: "Sun protection factor.",
-      status: "active",
+      status: "published",
       values: ["15", "30", "50"],
     },
   ],

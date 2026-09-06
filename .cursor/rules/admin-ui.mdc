@@ -15,7 +15,7 @@ Folder: `admin/`. Dev port **3001**.
 ## Site & API
 
 - Site: `getAdminSiteConfig()` in `lib/site.ts`.
-- **API-connected:** catalog list + CRUD (`components/catalog/*-catalog-form.tsx`, `ProductCatalogForm` with active-attribute picker; re-exported from `catalog-forms.tsx`; shared UI in `catalog-form-primitives.tsx`), orders list/detail (`ApiOrdersPanel`). Slugs are server-generated — not shown in forms.
+- **API-connected:** catalog list + CRUD (`components/catalog/*-catalog-form.tsx`, `ProductCatalogForm` with published-attribute picker; re-exported from `catalog-forms.tsx`; shared UI in `catalog-form-primitives.tsx`), orders list/detail (`ApiOrdersPanel`). Slugs are server-generated — not shown in forms.
 - Map DTOs in `lib/mappers/`. Other dashboard pages (dashboard home, customers, coupons, reviews, settings, reports, media, roles) are template/demo data — do not assume API submit works.
 
 ## Navigation

@@ -416,12 +416,10 @@ export function CatalogFormError({ message }: { message: string | null }) {
 function CatalogFormActionsInner({
   cancelHref,
   loading,
-  onRequestLeave,
   saveLabel = "Save",
 }: {
   cancelHref: string;
   loading: boolean;
-  onRequestLeave?: (href: string) => void;
   saveLabel?: string;
 }) {
   const cancelClassName =
@@ -429,12 +427,8 @@ function CatalogFormActionsInner({
 
   return (
     <>
-      {loading && onRequestLeave ? (
-        <button
-          className={cancelClassName}
-          onClick={() => onRequestLeave(cancelHref)}
-          type="button"
-        >
+      {loading ? (
+        <button className={cancelClassName} disabled type="button">
           Cancel
         </button>
       ) : (
@@ -459,13 +453,11 @@ export function CatalogFormFooter({
   cancelHref,
   error,
   loading,
-  onRequestLeave,
   saveLabel = "Save",
 }: {
   cancelHref: string;
   error: string | null;
   loading: boolean;
-  onRequestLeave?: (href: string) => void;
   saveLabel?: string;
 }) {
   return (
@@ -484,7 +476,6 @@ export function CatalogFormFooter({
         <CatalogFormActionsInner
           cancelHref={cancelHref}
           loading={loading}
-          onRequestLeave={onRequestLeave}
           saveLabel={saveLabel}
         />
       </div>
@@ -495,12 +486,10 @@ export function CatalogFormFooter({
 export function CatalogFormActions({
   cancelHref,
   loading,
-  onRequestLeave,
   saveLabel = "Save",
 }: {
   cancelHref: string;
   loading: boolean;
-  onRequestLeave?: (href: string) => void;
   saveLabel?: string;
 }) {
   return (
@@ -508,7 +497,6 @@ export function CatalogFormActions({
       <CatalogFormActionsInner
         cancelHref={cancelHref}
         loading={loading}
-        onRequestLeave={onRequestLeave}
         saveLabel={saveLabel}
       />
     </div>
@@ -520,7 +508,7 @@ export function StatusDot({
   variant = "published",
 }: {
   active: boolean;
-  variant?: "published" | "draft" | "archived" | "active";
+  variant?: "published" | "draft" | "archived";
 }) {
   return (
     <span
@@ -862,30 +850,28 @@ function CatalogNavAction({
   className,
   disabled = false,
   href,
-  onRequestLeave,
 }: {
   children: ReactNode;
   className?: string;
   disabled?: boolean;
   href: string;
-  onRequestLeave?: (href: string) => void;
 }) {
-  if (!disabled) {
+  if (disabled) {
     return (
-      <Link className={className} href={href}>
+      <button
+        className={cn(className, "cursor-not-allowed opacity-60")}
+        disabled
+        type="button"
+      >
         {children}
-      </Link>
+      </button>
     );
   }
 
   return (
-    <button
-      className={className}
-      onClick={() => onRequestLeave?.(href)}
-      type="button"
-    >
+    <Link className={className} href={href}>
       {children}
-    </button>
+    </Link>
   );
 }
 
@@ -921,11 +907,9 @@ function AssignedProductThumb({ alt, src }: { alt: string; src: string }) {
 
 function AssignedProductRow({
   disabled = false,
-  onRequestLeave,
   product,
 }: {
   disabled?: boolean;
-  onRequestLeave?: (href: string) => void;
   product: AssignedProductPreview;
 }) {
   const href = productEditPath(product.id);
@@ -975,13 +959,12 @@ function AssignedProductRow({
 
   if (disabled) {
     return (
-      <button
-        className={rowClassName}
-        onClick={() => onRequestLeave?.(href)}
-        type="button"
+      <div
+        aria-disabled
+        className={cn(rowClassName, "cursor-not-allowed opacity-60")}
       >
         {content}
-      </button>
+      </div>
     );
   }
 
@@ -1053,7 +1036,6 @@ export function AssignedProductsSection({
   disabled = false,
   emptyDescription,
   entityLabel,
-  onRequestLeave,
   products,
   productsHref,
   title = "Assigned products",
@@ -1063,7 +1045,6 @@ export function AssignedProductsSection({
   disabled?: boolean;
   emptyDescription: string;
   entityLabel: string;
-  onRequestLeave?: (href: string) => void;
   products: AssignedProductPreview[];
   productsHref: string;
   title?: string;
@@ -1103,7 +1084,6 @@ export function AssignedProductsSection({
               className="inline-flex h-8 items-center gap-1 rounded-base px-2.5 text-[12px] font-semibold text-ink-600 transition-colors hover:bg-surface-muted hover:text-brand-600"
               disabled={disabled}
               href={productsHref}
-              onRequestLeave={onRequestLeave}
             >
               View all
               <Icon className="h-3 w-3" name="arrow-up-right" />
@@ -1113,7 +1093,6 @@ export function AssignedProductsSection({
             className="inline-flex h-8 items-center gap-1 rounded-base bg-brand-600 px-3 text-[12px] font-semibold text-white transition-colors hover:bg-brand-700"
             disabled={disabled}
             href={addProductHref}
-            onRequestLeave={onRequestLeave}
           >
             <Icon className="h-3.5 w-3.5" name="plus" />
             Add product
@@ -1131,11 +1110,7 @@ export function AssignedProductsSection({
           <ul className="divide-y divide-surface-line bg-surface-card">
             {pageProducts.map((product) => (
               <li key={product.id}>
-                <AssignedProductRow
-                  disabled={disabled}
-                  onRequestLeave={onRequestLeave}
-                  product={product}
-                />
+                <AssignedProductRow disabled={disabled} product={product} />
               </li>
             ))}
           </ul>
@@ -1599,7 +1574,7 @@ export function ProductAttributesFields({
         {attributes.map((attribute) => {
           const currentValue = values[attribute.slug] ?? "";
           const inactiveHelp = attribute.inactive
-            ? "Inactive attribute — value is preserved on this product."
+            ? "Draft attribute — value is preserved on this product."
             : undefined;
 
           if (attribute.displayType === "Text") {

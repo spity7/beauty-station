@@ -60,7 +60,7 @@ proxy.ts                  Route gate via /api/auth/me (admin role)
 
 ## API integration
 
-**Connected today:** catalog list + CRUD (products, categories, brands, attributes) via `components/catalog/*-catalog-form.tsx` and `ProductCatalogForm` (includes active-attribute picker); orders list/detail (`ApiOrdersPanel`). Slugs are server-generated — not editable in admin forms.
+**Connected today:** catalog list + CRUD (products, categories, brands, attributes) via `components/catalog/*-catalog-form.tsx` and `ProductCatalogForm` (includes published-attribute picker); orders list/detail (`ApiOrdersPanel`). Slugs are server-generated — not editable in admin forms.
 
 **Template only:** dashboard home, customers, coupons, settings, reports, and most other nav items use demo data. See [docs/ROUTES.md](../docs/ROUTES.md).
 

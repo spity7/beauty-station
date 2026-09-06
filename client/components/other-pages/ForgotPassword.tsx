@@ -5,6 +5,7 @@ import Image from "next/image";
 import ReviewSlider from "./ReviewSlider";
 import { useState } from "react";
 import { ApiError, forgotPassword } from "@platform/api-client";
+import { useSubmitBusy } from "@platform/react-busy";
 import { useUiElement } from "@/context/uiStore";
 import { getStorefrontSiteConfig } from "@/lib/site";
 
@@ -119,6 +120,8 @@ function ForgotPasswordLayout({
   onSendLink,
   devResetUrl,
 }: ForgotPasswordLayoutProps) {
+  const { disabled } = useSubmitBusy(loading);
+
   return (
     <div className="rbt-component-area rbt-section-gap2Bottom rbt-section-gap2Top">
       <div className="container">
@@ -128,14 +131,25 @@ function ForgotPasswordLayout({
               <div className="rbt-login-form-inner">
                 <div className="rbt-login-form-top">
                   <div className="logo">
-                    <Link href={`/`}>
-                      <Image
-                        alt="Ecommerce Logo Images"
-                        src="/assets/images/logo/logo.webp"
-                        width={1487}
-                        height={334}
-                      />
-                    </Link>
+                    {disabled ? (
+                      <span className="d-inline-block pe-none opacity-50">
+                        <Image
+                          alt="Ecommerce Logo Images"
+                          src="/assets/images/logo/logo.webp"
+                          width={1487}
+                          height={334}
+                        />
+                      </span>
+                    ) : (
+                      <Link href={`/`}>
+                        <Image
+                          alt="Ecommerce Logo Images"
+                          src="/assets/images/logo/logo.webp"
+                          width={1487}
+                          height={334}
+                        />
+                      </Link>
+                    )}
                   </div>
                   <h6 className="rbt-title rbt-text-bold mb--16">
                     Forgot Password
@@ -143,6 +157,7 @@ function ForgotPasswordLayout({
 
                   {step === "request" && (
                     <form
+                      aria-busy={loading}
                       onSubmit={(e) => {
                         e.preventDefault();
                         onSendLink();
@@ -162,6 +177,7 @@ function ForgotPasswordLayout({
                         </label>
                         <input
                           className="rbt-input-field"
+                          disabled={disabled}
                           type="email"
                           id="forgot_page_email"
                           value={email}
@@ -209,9 +225,13 @@ function ForgotPasswordLayout({
                           style={{ color: "#0d6efd" }}
                         >
                           Dev reset link:{" "}
-                          <Link href={devResetUrl}>
+                          {disabled ? (
                             <strong>Open reset page</strong>
-                          </Link>
+                          ) : (
+                            <Link href={devResetUrl}>
+                              <strong>Open reset page</strong>
+                            </Link>
+                          )}
                         </p>
                       ) : null}
                       <button
@@ -227,9 +247,15 @@ function ForgotPasswordLayout({
 
                   <div className="rbt-login-system-switch rbt-link-hover mt--24">
                     Remember your password?{" "}
-                    <Link className="rbt-switch-btn ml--4" href={`/signin`}>
-                      <span>Sign In</span>
-                    </Link>
+                    {disabled ? (
+                      <span className="rbt-switch-btn ml--4 pe-none opacity-50">
+                        <span>Sign In</span>
+                      </span>
+                    ) : (
+                      <Link className="rbt-switch-btn ml--4" href={`/signin`}>
+                        <span>Sign In</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
                 <ReviewSlider />

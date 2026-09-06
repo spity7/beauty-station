@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useSubmitBusy } from "@platform/react-busy";
 import { useUiElement } from "@/context/uiStore";
 
 interface FooterNewsletterFormProps {
@@ -21,6 +22,7 @@ export default function FooterNewsletterForm({
   const { showToaster } = useUiElement();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { disabled } = useSubmitBusy(isSubmitting);
   const formspreeEndpoint = process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT ?? "";
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -71,9 +73,10 @@ export default function FooterNewsletterForm({
   };
 
   return (
-    <form className={formClass} onSubmit={handleSubmit}>
+    <form aria-busy={isSubmitting} className={formClass} onSubmit={handleSubmit}>
       <input
         className={inputClass}
+        disabled={disabled}
         name="email"
         type="email"
         placeholder={placeholder}

@@ -107,7 +107,7 @@ Proxies to `@platform/server` and sets httpOnly cookies on the admin origin (`:3
 | -------------------------------------------------------------------------------- | -------------- | ------------------------------------------------ |
 | `/`                                                                              | No             | Dashboard home (demo charts)                     |
 | `/products`                                                                      | **Yes**        | List + delete from API                           |
-| `/products/new`, `/products/[id]/edit`                                           | **Yes**        | Create/update via API (active attributes picker) |
+| `/products/new`, `/products/[id]/edit`                                           | **Yes**        | Create/update via API (published attributes picker) |
 | `/categories`                                                                    | **Yes**        | List + delete from API                           |
 | `/categories/new`, `/categories/[id]/edit`                                       | **Yes**        | Create/update via API (thumbnail upload or URL)  |
 | `/brands`                                                                        | **Yes**        | List + delete from API                           |
