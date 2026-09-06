@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { setAccessToken } from "@platform/api-client";
+import { getAccessToken, setAccessToken } from "@platform/api-client";
 import { routes } from "@/config/routes";
 import { tryRefreshSession } from "@/lib/refresh-session";
 
@@ -66,6 +66,10 @@ export function AuthSessionProvider({ children }: AuthSessionProviderProps) {
 
     if (!sessionUser && (await tryRefreshSession())) {
       sessionUser = await fetchSessionUser();
+    }
+
+    if (sessionUser && !getAccessToken()) {
+      await tryRefreshSession();
     }
 
     if (!sessionUser) {

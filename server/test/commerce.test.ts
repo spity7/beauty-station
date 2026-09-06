@@ -128,6 +128,35 @@ describe("commerce API", () => {
     assert.equal(await Cart.findOne({ guestSessionId }), null);
   });
 
+  it("is idempotent when merge is called twice", async () => {
+    const product = await seedPublishedProduct();
+    const guestSessionId = `guest-idempotent-${Date.now()}`;
+    const { body } = await registerCustomer(app);
+    await verifyCustomerEmail(app, body.accessToken);
+
+    await request(app)
+      .post("/api/cart/items")
+      .set("X-Guest-Cart-Id", guestSessionId)
+      .send({ productId: product._id.toString(), quantity: 1 })
+      .expect(201);
+
+    await request(app)
+      .post("/api/cart/merge")
+      .set(authHeader(body.accessToken))
+      .send({ guestSessionId })
+      .expect(200);
+
+    const secondMerge = await request(app)
+      .post("/api/cart/merge")
+      .set(authHeader(body.accessToken))
+      .send({ guestSessionId })
+      .expect(200);
+
+    assert.equal(secondMerge.body.itemCount, 1);
+    assert.equal(await Cart.findOne({ guestSessionId }), null);
+    assert.equal(await Cart.countDocuments({ userId: body.user.id }), 1);
+  });
+
   it("updates, removes, and clears cart items", async () => {
     const product = await seedPublishedProduct();
     const { body } = await registerCustomer(app);
@@ -326,5 +355,31 @@ describe("commerce API", () => {
 
     const updatedProduct = await Product.findById(product._id);
     assert.equal(updatedProduct?.stock, 5);
+  });
+
+  it("removes deleted products from cart on GET", async () => {
+    const product = await seedPublishedProduct();
+    const customer = await registerCustomer(app);
+    await verifyCustomerEmail(app, customer.body.accessToken);
+
+    await request(app)
+      .post("/api/cart/items")
+      .set(authHeader(customer.body.accessToken))
+      .send({ productId: product._id.toString(), quantity: 1 })
+      .expect(201);
+
+    const admin = await registerAdmin(app);
+    await request(app)
+      .delete(`/api/products/${product._id.toString()}`)
+      .set(authHeader(admin.body.accessToken))
+      .expect(204);
+
+    const cartResponse = await request(app)
+      .get("/api/cart")
+      .set(authHeader(customer.body.accessToken))
+      .expect(200);
+
+    assert.equal(cartResponse.body.items.length, 0);
+    assert.equal(cartResponse.body.itemCount, 0);
   });
 });

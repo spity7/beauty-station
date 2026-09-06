@@ -4,6 +4,7 @@ import { Cart } from "../models/Cart.js";
 import { Product } from "../models/Product.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { toCartDto } from "./commerce.serializers.js";
+import { refreshCartLineItems } from "./commerce-hygiene.service.js";
 
 export const GUEST_CART_HEADER = "x-guest-cart-id";
 
@@ -127,33 +128,58 @@ export async function mergeGuestCartIntoUser(
   const userCart = await getOrCreateUserCart(userId);
 
   if (!guestCart) {
+    await refreshCartLineItems(userCart);
     return toCartDto(userCart);
   }
 
   if (guestCart.items.length > 0) {
     for (const guestItem of guestCart.items) {
       const productId = guestItem.productId.toString();
+      const product = await Product.findById(productId);
+      if (!product || product.status !== "published") {
+        continue;
+      }
+
       const existing = userCart.items.find(
         (item) => item.productId.toString() === productId
       );
       const nextQty = (existing?.quantity ?? 0) + guestItem.quantity;
 
-      await assertPublishedProductStock(
-        productId,
-        nextQty,
-        guestItem.productName
-      );
+      if (product.stock < nextQty) {
+        continue;
+      }
 
       if (existing) {
         existing.quantity = nextQty;
+        existing.productName = product.name;
+        existing.productSlug = product.slug;
+        existing.productImage = product.images[0] ?? "";
+        existing.price = product.price;
       } else {
-        userCart.items.push(guestItem);
+        userCart.items.push({
+          productId: product._id,
+          quantity: guestItem.quantity,
+          productName: product.name,
+          productSlug: product.slug,
+          productImage: product.images[0] ?? "",
+          price: product.price,
+        });
       }
     }
 
     await userCart.save();
   }
 
-  await Cart.deleteOne({ _id: guestCart._id });
+  const deletedGuestCart = await Cart.findOneAndDelete({
+    _id: guestCart._id,
+    guestSessionId,
+  });
+  if (!deletedGuestCart) {
+    const latestUserCart = await getOrCreateUserCart(userId);
+    await refreshCartLineItems(latestUserCart);
+    return toCartDto(latestUserCart);
+  }
+
+  await refreshCartLineItems(userCart);
   return toCartDto(userCart);
 }

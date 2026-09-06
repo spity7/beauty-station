@@ -13,7 +13,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "openapi:generate": "tsx src/openapi/generate.ts",
-    "test": "node --import tsx --test --test-concurrency=1 test/health.test.ts test/auth.test.ts test/catalog.test.ts test/commerce.test.ts test/wishlist.test.ts test/uploads.test.ts test/prepare-avatar-image.test.ts test/compress-image-for-storage.test.ts test/gcs-errors.test.ts test/managed-avatar-storage.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 test/health.test.ts test/auth.test.ts test/catalog.test.ts test/commerce.test.ts test/wishlist.test.ts test/uploads.test.ts test/prepare-avatar-image.test.ts test/compress-image-for-storage.test.ts test/gcs-errors.test.ts test/managed-avatar-storage.test.ts test/managed-catalog-path.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

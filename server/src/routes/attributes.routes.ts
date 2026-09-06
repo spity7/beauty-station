@@ -8,7 +8,10 @@ import { AppError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { Attribute } from "../models/Attribute.js";
 import { Product } from "../models/Product.js";
-import { countProductsUsingAttributeSlug } from "../utils/catalog-relations.js";
+import {
+  assertNoProductsUseRemovedAttributeValues,
+  countProductsUsingAttributeSlug,
+} from "../utils/catalog-relations.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toAttributeDto } from "../utils/serializers.js";
 import { slugify } from "../utils/strings.js";
@@ -94,6 +97,7 @@ attributesRouter.patch(
     }
 
     const previousSlug = attribute.slug;
+    const previousValues = [...attribute.values];
 
     if (payload.name) {
       attribute.name = payload.name;
@@ -109,6 +113,11 @@ attributesRouter.patch(
       attribute.status = payload.status;
     }
     if (payload.values !== undefined) {
+      await assertNoProductsUseRemovedAttributeValues(
+        attribute.slug,
+        previousValues,
+        payload.values
+      );
       attribute.values = payload.values;
     }
 

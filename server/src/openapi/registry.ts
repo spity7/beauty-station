@@ -11,6 +11,7 @@ import {
   verifyEmailSchema,
   createUserAddressSchema,
   deleteAccountSchema,
+  deleteUploadSchema,
   forgotPasswordSchema,
   okResponseSchema,
   resetPasswordSchema,
@@ -1051,6 +1052,41 @@ openApiRegistry.registerPath({
     201: {
       description: "File uploaded",
       content: { "application/json": { schema: uploadResponseSchema } },
+    },
+    400: {
+      description: "Bad request",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    401: {
+      description: "Unauthorized",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    503: {
+      description: "Storage unavailable",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: "delete",
+  path: "/api/uploads",
+  tags: ["Uploads"],
+  operationId: "deleteUploadedFile",
+  summary: "Delete a catalog image from storage",
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: deleteUploadSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    204: {
+      description: "File deleted or already absent",
     },
     400: {
       description: "Bad request",

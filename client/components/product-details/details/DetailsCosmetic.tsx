@@ -20,6 +20,19 @@ import { Product } from "@/types";
 import { formatCurrency } from "@/lib/price";
 
 export default function DetailsCosmetic({ product }: { product: Product }) {
+  const categoryLabel = product.category?.[0];
+  const stockCount = product.availableQuantity ?? 0;
+  const stockProgress =
+    stockCount > 0 ? Math.min(100, Math.max(8, stockCount)) : 0;
+  const attributeEntries = product.attributes
+    ? Object.entries(product.attributes).filter(([, value]) => {
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        return String(value).trim().length > 0;
+      })
+    : [];
+
   return (
     <div className="rbt-component-area rbt-single-product-area rbt-bg-color-white rbt-section-gapBottom">
       <div className="container">
@@ -28,17 +41,16 @@ export default function DetailsCosmetic({ product }: { product: Product }) {
             <div className="row row--24 justify-content-center mt_dec--24">
               <div className="col-xl-12 mt--24">
                 <div className="rbt-single-product-media-area rbt-single-product-media-area-dflt">
-                  <Slider3 />
+                  <Slider3 alt={product.title} images={product.images} />
                 </div>
               </div>
               <div className="col-xl-6 col-lg-12 col-12 mt--24">
                 <div className="rbt-single-product-content">
-                  <a
-                    href="#"
-                    className="rbt-card-subtitle rbt-card-categories-text"
-                  >
-                    Lipstick
-                  </a>
+                  {categoryLabel ? (
+                    <span className="rbt-card-subtitle rbt-card-categories-text">
+                      {categoryLabel}
+                    </span>
+                  ) : null}
                   <h2 className="rbt-card-title mt--12">{product.title}</h2>
                   <div className="rbt-info-wrapper d-flex mt--28">
                     <ProductRating product={product} className="mt--0">
@@ -49,17 +61,23 @@ export default function DetailsCosmetic({ product }: { product: Product }) {
                     <div className="prd-info-section">
                       <div className="prd-id-text">
                         <p className="text-bold">Brand:</p>
-                        <Tooltip content="Product Brand" placement="top">
-                          <a href="#" className="rbt-brand-img tooltips">
-                            <Image
-                              alt="Small icon Brand"
-                              src="/assets/images/icons/small-brand/sm-brand-b-01.webp"
-                              width={78}
-                              height={48}
-                              className="image-auto"
-                            />
-                          </a>
-                        </Tooltip>
+                        {product.brandName ? (
+                          <span className="rbt-brand-img">
+                            {product.brandName}
+                          </span>
+                        ) : (
+                          <Tooltip content="Product Brand" placement="top">
+                            <span className="rbt-brand-img tooltips">
+                              <Image
+                                alt="Brand placeholder"
+                                className="image-auto"
+                                height={48}
+                                src="/assets/images/icons/small-brand/sm-brand-b-01.webp"
+                                width={78}
+                              />
+                            </span>
+                          </Tooltip>
+                        )}
                       </div>
                     </div>
                     <div className="prd-info-section has-left-separator">
@@ -125,6 +143,31 @@ export default function DetailsCosmetic({ product }: { product: Product }) {
                       </a>
                     </div>
                   </div>
+                  {attributeEntries.length > 0 ? (
+                    <>
+                      <hr className="rbt-separator rbt-separator-gray200 mt--24 mb--24" />
+                      <ul className="product-details-list shipment-details-list">
+                        {attributeEntries.map(([slug, value]) => (
+                          <li key={slug}>
+                            <span className="icon">
+                              <i className="fa-regular fa-tag" />
+                            </span>
+                            <div className="right-content">
+                              <span className="rbt-bold--text">
+                                {slug.replace(/-/g, " ")}:
+                              </span>
+                              <span className="text">
+                                {" "}
+                                {Array.isArray(value)
+                                  ? value.join(", ")
+                                  : value}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
                   <hr className="rbt-separator rbt-separator-gray200 mt--24 mb--24" />
                   <ul className="product-details-list shipment-details-list">
                     <li>
@@ -161,17 +204,24 @@ export default function DetailsCosmetic({ product }: { product: Product }) {
                   <div className="rbt-info-wrapper d-block mt--24">
                     <div className="rbt-prd-qty-area">
                       <p className="prd-qty-txt">
-                        <strong>Only 97 pc left</strong>
+                        <strong>
+                          {stockCount > 0
+                            ? `${stockCount} in stock`
+                            : "Out of stock"}
+                        </strong>
                       </p>
                       <div
+                        aria-label="Stock progress"
+                        aria-valuemax={100}
+                        aria-valuemin={0}
+                        aria-valuenow={stockProgress}
                         className="progress"
                         role="progressbar"
-                        aria-label="Shipping-progress"
-                        aria-valuenow={50}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
                       >
-                        <div className="progress-bar w-50" />
+                        <div
+                          className="progress-bar"
+                          style={{ width: `${stockProgress}%` }}
+                        />
                       </div>
                     </div>
                   </div>

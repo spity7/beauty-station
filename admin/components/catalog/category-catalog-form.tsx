@@ -1,17 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CatalogFormActions,
   CatalogFormError,
   ControlledField,
   ControlledSelect,
-  inferThumbnailImageSource,
+  collectRemovedHostedImages,
+  deleteHostedCatalogImages,
+  getThumbnailPreviewState,
+  isHostedCatalogImageUrl,
   ProductCountCard,
+  revokeBlobPreviewUrl,
   StatusDot,
   ThumbnailUploadCard,
-  type ThumbnailImageSource,
   uploadCatalogImage,
 } from "@/components/catalog/catalog-form-primitives";
 import { FormCard } from "@/components/forms/admin-form-primitives";
@@ -35,61 +38,90 @@ export function CategoryCatalogForm({
 }: CategoryCatalogFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
-  const [image, setImage] = useState(initial?.image ?? "");
-  const [imageSource, setImageSource] = useState<ThumbnailImageSource>(() =>
-    inferThumbnailImageSource(initial?.image ?? "")
-  );
+  const [savedImageUrl, setSavedImageUrl] = useState(initial?.image ?? "");
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState(initial?.image ?? "");
   const [status, setStatus] = useState<CategoryDto["status"]>(
     initial?.status ?? "draft"
   );
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [formState, setFormState] = useState<FormState>({
     error: null,
     loading: false,
   });
+  const initialHostedImage =
+    mode === "edit" && initial && isHostedCatalogImageUrl(initial.image)
+      ? initial.image
+      : "";
 
-  async function handleImageUpload(file: File) {
-    setUploadingImage(true);
+  const previewState = useMemo(
+    () => getThumbnailPreviewState(savedImageUrl, pendingImageFile !== null),
+    [pendingImageFile, savedImageUrl]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (pendingImageFile) {
+        revokeBlobPreviewUrl(previewUrl);
+      }
+    };
+  }, [pendingImageFile, previewUrl]);
+
+  function handleImageUpload(file: File) {
     setFormState((current) => ({ ...current, error: null }));
-    try {
-      const url = await uploadCatalogImage(file, "categories");
-      setImage(url);
-      setImageSource("upload");
-    } catch (error) {
-      setFormState((current) => ({
-        ...current,
-        error: error instanceof Error ? error.message : "Image upload failed",
-      }));
-    } finally {
-      setUploadingImage(false);
+    if (pendingImageFile) {
+      revokeBlobPreviewUrl(previewUrl);
     }
+    setPendingImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   }
 
-  function handleImageUrlChange(url: string) {
-    setImage(url);
-    setImageSource(url.trim() ? "url" : "none");
-  }
-
-  function handleClearImage() {
-    setImage("");
-    setImageSource("none");
+  function handleRemoveImage() {
+    if (pendingImageFile) {
+      revokeBlobPreviewUrl(previewUrl);
+      setPendingImageFile(null);
+    }
+    setSavedImageUrl("");
+    setPreviewUrl("");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormState({ error: null, loading: true });
 
-    const payload = { name, image, status };
+    let finalImage = savedImageUrl.trim();
+    const uploadedInThisAttempt: string[] = [];
 
     try {
+      if (pendingImageFile) {
+        finalImage = await uploadCatalogImage(pendingImageFile, "categories");
+        uploadedInThisAttempt.push(finalImage);
+        revokeBlobPreviewUrl(previewUrl);
+        setPendingImageFile(null);
+        setPreviewUrl(finalImage);
+        setSavedImageUrl(finalImage);
+      }
+
+      const payload = { name, image: finalImage, status };
+
       if (mode === "add") {
         await createCategoryApi(payload);
       } else if (initial) {
         await updateCategoryApi(initial.id, payload);
       }
+
+      await deleteHostedCatalogImages(
+        collectRemovedHostedImages(
+          initialHostedImage ? [initialHostedImage] : [],
+          finalImage ? [finalImage] : []
+        )
+      );
+
       router.push(routes.categories);
       router.refresh();
     } catch (error) {
+      if (uploadedInThisAttempt.length > 0) {
+        await deleteHostedCatalogImages(uploadedInThisAttempt);
+      }
       setFormState({
         error: error instanceof Error ? error.message : "Save failed",
         loading: false,
@@ -130,12 +162,11 @@ export function CategoryCatalogForm({
         </FormCard>
         <ThumbnailUploadCard
           alt={name || "Category thumbnail"}
-          imageSource={imageSource}
-          imageUrl={image}
-          loading={uploadingImage}
-          onClear={handleClearImage}
-          onImageUrlChange={handleImageUrlChange}
+          disabled={formState.loading}
+          onClear={handleRemoveImage}
           onUpload={handleImageUpload}
+          previewState={previewState}
+          previewUrl={previewUrl}
         />
       </div>
       {mode === "edit" && initial ? (

@@ -409,4 +409,117 @@ describe("catalog API", () => {
 
     assert.match(deleteResponse.body.error, /still reference it/);
   });
+
+  it("propagates brand rename to linked products", async () => {
+    const { body } = await registerAdmin(app);
+    const suffix = Date.now();
+
+    const brandResponse = await request(app)
+      .post("/api/brands")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Original Brand ${suffix}`,
+        status: "published",
+        visibility: "Standard",
+      })
+      .expect(201);
+
+    const brandId = brandResponse.body.id;
+
+    const productResponse = await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: "Rename Brand Product",
+        sku: `RENAME-BRAND-${suffix}`,
+        price: 10,
+        stock: 1,
+        status: "published",
+        brandId,
+      })
+      .expect(201);
+
+    const renamed = `Renamed Brand ${suffix}`;
+    await request(app)
+      .patch(`/api/brands/${brandId}`)
+      .set(authHeader(body.accessToken))
+      .send({ name: renamed })
+      .expect(200);
+
+    const product = await request(app)
+      .get(`/api/products/${productResponse.body.id}`)
+      .expect(200);
+
+    assert.equal(product.body.brandName, renamed);
+  });
+
+  it("keeps product slug when the name is updated", async () => {
+    const { body } = await registerAdmin(app);
+    const suffix = Date.now();
+
+    const productResponse = await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Original Product ${suffix}`,
+        sku: `SLUG-KEEP-${suffix}`,
+        price: 10,
+        stock: 1,
+        status: "published",
+      })
+      .expect(201);
+
+    const originalSlug = productResponse.body.slug;
+    const renamed = `Renamed Product ${suffix}`;
+
+    await request(app)
+      .patch(`/api/products/${productResponse.body.id}`)
+      .set(authHeader(body.accessToken))
+      .send({ name: renamed })
+      .expect(200);
+
+    const product = await request(app)
+      .get(`/api/products/${productResponse.body.id}`)
+      .expect(200);
+
+    assert.equal(product.body.slug, originalSlug);
+    assert.equal(product.body.name, renamed);
+  });
+
+  it("blocks removing attribute values still used by products", async () => {
+    const { body } = await registerAdmin(app);
+    const suffix = Date.now();
+
+    const attributeResponse = await request(app)
+      .post("/api/attributes")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Finish Guard ${suffix}`,
+        displayType: "Dropdown",
+        status: "active",
+        values: ["Matte", "Gloss"],
+      })
+      .expect(201);
+
+    await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: "Attribute Value Guard Product",
+        sku: `ATTR-VAL-${suffix}`,
+        price: 12,
+        stock: 3,
+        status: "published",
+        attributes: { [attributeResponse.body.slug]: "Matte" },
+      })
+      .expect(201);
+
+    const patchResponse = await request(app)
+      .patch(`/api/attributes/${attributeResponse.body.id}`)
+      .set(authHeader(body.accessToken))
+      .send({ values: ["Gloss"] })
+      .expect(409);
+
+    assert.match(patchResponse.body.error, /still use it/);
+  });
 });

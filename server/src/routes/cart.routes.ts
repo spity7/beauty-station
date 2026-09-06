@@ -17,6 +17,7 @@ import {
   resolveCart,
   updateCartItemQuantity,
 } from "../services/cart.service.js";
+import { refreshCartLineItems } from "../services/commerce-hygiene.service.js";
 import { toCartDto } from "../services/commerce.serializers.js";
 
 export const cartRouter = Router();
@@ -26,6 +27,7 @@ cartRouter.get(
   optionalAuth,
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const cart = await resolveCart(req);
+    await refreshCartLineItems(cart);
     res.json(toCartDto(cart));
   })
 );

@@ -12,6 +12,11 @@ import { syncProductCategoryNames } from "../utils/catalog-relations.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toCategoryDto } from "../utils/serializers.js";
 import { slugify } from "../utils/strings.js";
+import {
+  collectRemovedManagedCatalogImages,
+  deleteManagedCatalogImageIfPresent,
+  deleteManagedCatalogImagesIfPresent,
+} from "../services/managed-catalog-storage.js";
 
 export const categoriesRouter = Router();
 
@@ -92,6 +97,7 @@ categoriesRouter.patch(
     }
 
     const previousName = category.name;
+    const previousImage = category.image;
 
     if (payload.name) {
       category.name = payload.name;
@@ -108,6 +114,15 @@ categoriesRouter.patch(
 
     if (payload.name && payload.name !== previousName) {
       await syncProductCategoryNames(category._id, category.name);
+    }
+
+    if (payload.image !== undefined) {
+      await deleteManagedCatalogImagesIfPresent(
+        collectRemovedManagedCatalogImages(
+          previousImage ? [previousImage] : [],
+          category.image ? [category.image] : []
+        )
+      );
     }
 
     res.json(toCategoryDto(category));
@@ -134,6 +149,7 @@ categoriesRouter.delete(
       );
     }
 
+    await deleteManagedCatalogImageIfPresent(category.image);
     await category.deleteOne();
     res.status(204).send();
   })

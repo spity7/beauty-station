@@ -2,6 +2,7 @@ import { AppError } from "../middleware/errorHandler.js";
 import { Product } from "../models/Product.js";
 import { Wishlist } from "../models/Wishlist.js";
 import { addProductToCart, getOrCreateUserCart } from "./cart.service.js";
+import { refreshWishlistLineItems } from "./commerce-hygiene.service.js";
 import {
   mapWishlistItemSnapshot,
   toWishlistDto,
@@ -97,5 +98,6 @@ export async function moveWishlistItemToCart(
 
 export async function getUserWishlist(userId: string) {
   const wishlist = await getOrCreateUserWishlist(userId);
+  await refreshWishlistLineItems(wishlist);
   return toWishlistDto(wishlist);
 }

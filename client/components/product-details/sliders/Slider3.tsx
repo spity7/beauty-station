@@ -2,34 +2,70 @@
 import type { Swiper as SwiperClass } from "swiper";
 import Image from "next/image";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FreeMode, Navigation, Thumbs } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import LightGallery from "lightgallery/react";
 import lgThumbnail from "lightgallery/plugins/thumbnail";
 import lgZoom from "lightgallery/plugins/zoom";
 
-const productImages = [
-  "/assets/images/product-img/beauty-product/beauty-product-a-03.webp",
-  "/assets/images/product-img/beauty-product/beauty-product-a-04.webp",
-  "/assets/images/product-img/beauty-product/beauty-product-a-01.webp",
-  "/assets/images/product-img/beauty-product/beauty-product-a-02.webp",
+const DEFAULT_PRODUCT_IMAGES = [
   "/assets/images/product-img/beauty-product/beauty-product-a-03.webp",
   "/assets/images/product-img/beauty-product/beauty-product-a-04.webp",
   "/assets/images/product-img/beauty-product/beauty-product-a-01.webp",
   "/assets/images/product-img/beauty-product/beauty-product-a-02.webp",
 ];
+
 import "@/lib/lightgallery-styles";
-export default function Slider3() {
+
+type Slider3Props = {
+  alt?: string;
+  images?: string[];
+};
+
+function GalleryImage({
+  alt,
+  className,
+  src,
+}: {
+  alt: string;
+  className?: string;
+  src: string;
+}) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  return (
+    <Image
+      alt={alt}
+      className={className}
+      height={848}
+      onError={() => {
+        setCurrentSrc(DEFAULT_PRODUCT_IMAGES[0]);
+      }}
+      src={currentSrc}
+      width={848}
+    />
+  );
+}
+
+export default function Slider3({
+  alt = "Product image",
+  images,
+}: Slider3Props) {
   const [swiperThumb, setSwiperThumb] = useState<SwiperClass | null>(null);
+  const productImages = useMemo(
+    () => (images && images.length > 0 ? images : DEFAULT_PRODUCT_IMAGES),
+    [images]
+  );
+
   return (
     <>
       <div className="rbt-medea-lg-img-area">
         <LightGallery
-          plugins={[lgThumbnail, lgZoom]}
           elementClassNames="swiper rbt-arrow-between rbt-product-single-slider-twolayout-activation rbt-arrow-show-dfl"
-          speed={400}
+          plugins={[lgThumbnail, lgZoom]}
           selector=".rbt-product-single-img"
+          speed={400}
           zoomFromOrigin={false}
         >
           <Swiper
@@ -55,25 +91,21 @@ export default function Slider3() {
             <div className="swiper-wrapper rbt-store-thumb-main-1">
               {productImages.map((src, index) => (
                 <SwiperSlide
-                  key={index}
                   className={`swiper-slide rbt-scroll-trigger fade_in animation-order-${
                     index + 1
                   }`}
+                  key={`${src}-${index}`}
                 >
                   <div className="thumbnail">
                     <a
                       className="rbt-product-single-img"
-                      href={src}
                       data-src={src}
+                      href={src}
                     >
-                      <Image
-                        className={`${
-                          src.includes("a-02") ? "w-200" : "w-100"
-                        } rbt-rounded--12`}
-                        alt="Product Images"
+                      <GalleryImage
+                        alt={alt}
+                        className="w-100 rbt-rounded--12"
                         src={src}
-                        width={848}
-                        height={848}
                       />
                     </a>
                   </div>
@@ -120,19 +152,20 @@ export default function Slider3() {
           <div className="swiper-wrapper rbt-store-thumb-variation-1">
             {productImages.map((src, index) => (
               <SwiperSlide
-                key={index}
                 className={`swiper-slide rbt-scroll-trigger fade_in animation-order-${
                   index + 1
                 }`}
+                key={`thumb-${src}-${index}`}
               >
-                <button className="thumbnail d-block position-relative">
+                <button
+                  className="thumbnail d-block position-relative"
+                  type="button"
+                >
                   <span className="rbt-thumb-img-sm">
-                    <Image
+                    <GalleryImage
+                      alt={alt}
                       className="w-100 rbt-rounded--4"
-                      alt="Product Images"
                       src={src}
-                      width={848}
-                      height={848}
                     />
                   </span>
                 </button>

@@ -4,9 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { mergeGuestCart, setAccessToken, ApiError } from "@platform/api-client";
+import { setAccessToken, ApiError } from "@platform/api-client";
 import type { AuthResponse } from "@platform/shared";
-import { getOrCreateGuestCartId, clearGuestCartId } from "@/lib/guest-cart";
+import { mergeGuestCartIfNeeded } from "@/lib/guest-cart-merge";
 import { completeStorefrontAuthRedirect } from "@/lib/complete-auth-redirect";
 import { buildSignUpPath } from "@/lib/auth-redirect";
 import { getSiteChromeBranding } from "@/lib/site-branding";
@@ -42,16 +42,7 @@ export function StorefrontSignInForm() {
       }
 
       setAccessToken(body.accessToken);
-
-      const guestSessionId = getOrCreateGuestCartId();
-      if (guestSessionId) {
-        try {
-          await mergeGuestCart(guestSessionId);
-          clearGuestCartId();
-        } catch {
-          // Cart merge is best-effort after login.
-        }
-      }
+      await mergeGuestCartIfNeeded();
 
       await completeStorefrontAuthRedirect(router.push);
       router.refresh();

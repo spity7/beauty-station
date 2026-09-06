@@ -208,11 +208,12 @@ Requires MongoDB on `127.0.0.1:27017` (default DB `ecommerce-platform-test`). Ov
 
 See [ROUTES.md](ROUTES.md) for the full table. Summary:
 
-- `GET/POST /api/products`, `GET /api/products/slug/:slug`, `GET/PATCH/DELETE /api/products/:id` (PATCH validates category/brand FKs and attribute keys/values; maintains `productCount` on category/brand/attribute)
-- `GET/POST /api/categories`, `GET/PATCH/DELETE /api/categories/:id` (delete **409** when products reference it; rename propagates `categoryName`; slug server-derived from name)
+- `GET/POST /api/products`, `GET /api/products/slug/:slug`, `GET/PATCH/DELETE /api/products/:id` (PATCH validates category/brand FKs and attribute keys/values; maintains `productCount`; **slug is immutable after create**; deleting a product removes managed GCS images)
+- `GET/POST /api/categories`, `GET/PATCH/DELETE /api/categories/:id` (delete **409** when products reference it; rename propagates `categoryName`; slug server-derived from name; deleting or replacing a category image removes the old managed GCS object)
 - `GET/POST /api/brands`, `GET/PATCH/DELETE /api/brands/:id` (delete **409** when products reference it; rename propagates `brandName`; slug server-derived)
-- `GET/POST /api/attributes`, `GET/PATCH/DELETE /api/attributes/:id` (delete **409** when products use attribute slug; rename re-slugs and migrates product keys; `productCount` maintained on product CRUD)
-- `POST /api/uploads`
+- `GET/POST /api/attributes`, `GET/PATCH/DELETE /api/attributes/:id` (delete **409** when products use attribute slug; rename re-slugs and migrates product keys; **409** when removing attribute values still used by products; `productCount` maintained on product CRUD)
+- `POST /api/uploads`, `DELETE /api/uploads` (managed catalog folders only)
+- `GET /api/cart` refreshes line snapshots and prunes unavailable products; guest cart merge runs on login/registration and when an authenticated session is restored (`POST /api/cart/merge`); guest cart rows are deleted after merge
 - `GET /api/health`
 
 Catalog **GET** routes are public. Catalog **POST/PATCH/DELETE** and **uploads** require admin JWT (`bearerAuth` in OpenAPI).
@@ -222,7 +223,7 @@ Catalog **GET** routes are public. Catalog **POST/PATCH/DELETE** and **uploads**
 - **MongoDB** via Mongoose 9 — one database per site (`MONGODB_URI`)
 - Models: `Product`, `Category`, `Brand`, `Attribute` in `server/src/models/`
 - Seed: `npm run seed` → `server/src/scripts/seed.ts` (dataset from `SITE_ID` + `homeLayout`: beauty, sport, or general). Sets `productCount` on categories, brands, and attributes from seeded product links.
-- Optional media: Google Cloud Storage (`POST /api/uploads` returns 503 if not configured). Image uploads above **800 KB** are automatically re-encoded to WebP between **400 KB and 800 KB** before storage (applies to all GCS uploads, including profile photos).
+- Optional media: Google Cloud Storage (`POST /api/uploads` returns 503 if not configured; `DELETE /api/uploads` removes managed catalog images). Server deletes managed GCS objects when products/categories are deleted or when image fields change on PATCH. Image uploads above **800 KB** are automatically re-encoded to WebP between **400 KB and 800 KB** before storage (applies to all GCS uploads, including profile photos).
 
 ## Feature flags
 

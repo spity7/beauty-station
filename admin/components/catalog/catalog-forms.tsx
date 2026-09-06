@@ -1,19 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CatalogFormActions,
   CatalogFormError,
   CatalogFormLayout,
+  CatalogMediaUploadField,
   ControlledField,
   ControlledSelect,
   ControlledTextarea,
+  collectRemovedHostedImages,
+  createPendingCatalogFile,
+  deleteHostedCatalogImages,
+  isHostedCatalogImageUrl,
   ProductAttributesFields,
-  ProductImageList,
   ReadOnlyField,
+  revokePendingCatalogFile,
   StatusDot,
-  uploadCatalogImage,
+  uploadCatalogImages,
+  type CatalogImagePreview,
+  type PendingCatalogFile,
   type ProductFormAttribute,
 } from "@/components/catalog/catalog-form-primitives";
 import { FormCard } from "@/components/forms/admin-form-primitives";
@@ -57,6 +64,33 @@ function initialAttributeValues(
   );
 }
 
+function toSavedImageEntry(url: string): CatalogImagePreview {
+  return {
+    id: `saved-${url}`,
+    kind: "saved",
+    url,
+  };
+}
+
+function toPendingImageEntry(pending: PendingCatalogFile): CatalogImagePreview {
+  return {
+    id: pending.id,
+    kind: "pending",
+    file: pending.file,
+    previewUrl: pending.previewUrl,
+  };
+}
+
+function revokeImageEntry(entry: CatalogImagePreview): void {
+  if (entry.kind === "pending") {
+    revokePendingCatalogFile({
+      file: entry.file,
+      id: entry.id,
+      previewUrl: entry.previewUrl,
+    });
+  }
+}
+
 export function ProductCatalogForm({
   attributes,
   categories,
@@ -77,8 +111,9 @@ export function ProductCatalogForm({
   );
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
   const [brandId, setBrandId] = useState(initial?.brandId ?? "");
-  const [images, setImages] = useState(initial?.images ?? []);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageEntries, setImageEntries] = useState<CatalogImagePreview[]>(() =>
+    (initial?.images ?? []).map(toSavedImageEntry)
+  );
   const [attributeValues, setAttributeValues] = useState(() =>
     initialAttributeValues(attributes, initial)
   );
@@ -86,6 +121,22 @@ export function ProductCatalogForm({
     error: null,
     loading: false,
   });
+  const initialHostedImages = useMemo(
+    () => (initial?.images ?? []).filter(isHostedCatalogImageUrl),
+    [initial?.images]
+  );
+
+  const imagePreviews = imageEntries;
+  const imageEntriesRef = useRef(imageEntries);
+  imageEntriesRef.current = imageEntries;
+
+  useEffect(() => {
+    return () => {
+      for (const entry of imageEntriesRef.current) {
+        revokeImageEntry(entry);
+      }
+    };
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -94,35 +145,92 @@ export function ProductCatalogForm({
     const attributesPayload = Object.fromEntries(
       Object.entries(attributeValues).filter(([, value]) => value.trim())
     );
-
-    const payload = {
-      name,
-      price: Number(price),
-      compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
-      stock: Number(stock),
-      description,
-      status,
-      categoryId: categoryId || undefined,
-      brandId: brandId || undefined,
-      images,
-      attributes: attributesPayload,
-    };
+    let uploadedInThisAttempt: string[] = [];
 
     try {
+      const pendingEntries = imageEntries.filter(
+        (entry): entry is Extract<CatalogImagePreview, { kind: "pending" }> =>
+          entry.kind === "pending"
+      );
+      uploadedInThisAttempt = await uploadCatalogImages(
+        pendingEntries.map((entry) => entry.file),
+        "products"
+      );
+      let pendingUploadIndex = 0;
+      const finalImages = imageEntries.map((entry) => {
+        if (entry.kind === "saved") {
+          return entry.url;
+        }
+        const uploadedUrl = uploadedInThisAttempt[pendingUploadIndex];
+        pendingUploadIndex += 1;
+        if (!uploadedUrl) {
+          throw new Error("Failed to upload one or more product images.");
+        }
+        return uploadedUrl;
+      });
+
+      for (const entry of pendingEntries) {
+        revokeImageEntry(entry);
+      }
+      setImageEntries(finalImages.map(toSavedImageEntry));
+      const payload = {
+        name,
+        price: Number(price),
+        compareAtPrice: compareAtPrice ? Number(compareAtPrice) : undefined,
+        stock: Number(stock),
+        description,
+        status,
+        categoryId: categoryId || undefined,
+        brandId: brandId || undefined,
+        images: finalImages,
+        attributes: attributesPayload,
+      };
+
       if (mode === "add") {
         await createProductApi(payload);
-        router.push(routes.products);
       } else if (initial) {
         await updateProductApi(initial.id, payload);
-        router.push(routes.products);
       }
+
+      await deleteHostedCatalogImages(
+        collectRemovedHostedImages(initialHostedImages, finalImages)
+      );
+
+      router.push(routes.products);
       router.refresh();
     } catch (error) {
+      if (uploadedInThisAttempt.length > 0) {
+        await deleteHostedCatalogImages(uploadedInThisAttempt);
+      }
       setFormState({
         error: error instanceof Error ? error.message : "Save failed",
         loading: false,
       });
     }
+  }
+
+  function handleAddImages(files: File[]) {
+    setFormState((current) => ({ ...current, error: null }));
+    setImageEntries((previous) => [
+      ...previous,
+      ...files.map((file) =>
+        toPendingImageEntry(createPendingCatalogFile(file))
+      ),
+    ]);
+  }
+
+  function handleRemoveImage(id: string) {
+    setImageEntries((previous) => {
+      const target = previous.find((entry) => entry.id === id);
+      if (target) {
+        revokeImageEntry(target);
+      }
+      return previous.filter((entry) => entry.id !== id);
+    });
+  }
+
+  function handleReorderImages(nextImages: CatalogImagePreview[]) {
+    setImageEntries(nextImages);
   }
 
   return (
@@ -239,52 +347,20 @@ export function ProductCatalogForm({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <FormCard title="Media">
-            <label className="block">
-              <span className="text-[13px] font-semibold text-ink-700">
-                Product images
-              </span>
-              <input
-                accept=".png,.jpg,.jpeg,.webp"
-                className="mt-1.5 block w-full text-[13px] text-ink-600 file:mr-3 file:rounded-base file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-[13px] file:font-semibold file:text-brand-600 hover:file:bg-brand-100"
-                disabled={uploadingImage}
-                onChange={async (event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  setUploadingImage(true);
-                  setFormState((current) => ({ ...current, error: null }));
-                  try {
-                    const url = await uploadCatalogImage(file, "products");
-                    setImages((previous) => [...previous, url]);
-                  } catch {
-                    setFormState((current) => ({
-                      ...current,
-                      error: "Image upload failed",
-                    }));
-                  } finally {
-                    setUploadingImage(false);
-                    event.target.value = "";
-                  }
-                }}
-                type="file"
-              />
-            </label>
-            <p className="mt-2 text-[12px] text-ink-400">
-              {uploadingImage
-                ? "Uploading…"
-                : images.length > 0
-                  ? `${images.length} image${images.length === 1 ? "" : "s"} attached. Upload more or save to persist.`
-                  : "Upload PNG, JPG, or WebP images."}
-            </p>
-            {images.length > 0 ? (
-              <ProductImageList
-                images={images}
-                onRemove={(image) =>
-                  setImages((previous) =>
-                    previous.filter((item) => item !== image)
-                  )
-                }
-              />
-            ) : null}
+            <CatalogMediaUploadField
+              disabled={formState.loading}
+              helperText={
+                formState.loading
+                  ? "Saving…"
+                  : imagePreviews.length > 0
+                    ? `${imagePreviews.length} image${imagePreviews.length === 1 ? "" : "s"} selected. Files upload to storage when you save.`
+                    : "Add PNG, JPG, or WebP images. Uploads on save."
+              }
+              images={imagePreviews}
+              onAddFiles={handleAddImages}
+              onRemove={handleRemoveImage}
+              onReorder={handleReorderImages}
+            />
           </FormCard>
           <FormCard title="Description">
             <ControlledTextarea

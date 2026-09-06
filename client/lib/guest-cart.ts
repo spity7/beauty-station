@@ -18,7 +18,16 @@ export function getOrCreateGuestCartId(): string {
       : `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   localStorage.setItem(GUEST_CART_KEY, id);
+  setGuestCartId(id);
   return id;
+}
+
+export function peekGuestCartId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(GUEST_CART_KEY);
 }
 
 export function clearGuestCartId(): void {

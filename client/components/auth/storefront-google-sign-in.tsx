@@ -3,9 +3,9 @@
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ApiError, mergeGuestCart, setAccessToken } from "@platform/api-client";
+import { ApiError, setAccessToken } from "@platform/api-client";
 import type { AuthResponse } from "@platform/shared";
-import { clearGuestCartId, getOrCreateGuestCartId } from "@/lib/guest-cart";
+import { mergeGuestCartIfNeeded } from "@/lib/guest-cart-merge";
 import { completeStorefrontAuthRedirect } from "@/lib/complete-auth-redirect";
 
 export default function StorefrontGoogleSignIn() {
@@ -36,16 +36,7 @@ export default function StorefrontGoogleSignIn() {
       }
 
       setAccessToken(body.accessToken);
-
-      const guestSessionId = getOrCreateGuestCartId();
-      if (guestSessionId) {
-        try {
-          await mergeGuestCart(guestSessionId);
-          clearGuestCartId();
-        } catch {
-          // Cart merge is best-effort after login.
-        }
-      }
+      await mergeGuestCartIfNeeded();
 
       await completeStorefrontAuthRedirect(router.push);
       router.refresh();

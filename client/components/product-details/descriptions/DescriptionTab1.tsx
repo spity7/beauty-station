@@ -19,7 +19,11 @@ import {
 import { useState } from "react";
 
 export default function DescriptionTab1({
+  description,
   parentClass = "rbt-tab rbt-product-single-details-tab rbt-fshape-tab",
+}: {
+  description?: string;
+  parentClass?: string;
 }) {
   const [activeTab, setActiveTab] = useState<
     "description" | "specification" | "reviews" | "question"
@@ -108,113 +112,130 @@ export default function DescriptionTab1({
           {activeTab === "description" && (
             <div className="tab-pane fade active show">
               <div className="rbt-product-single-description">
-                <h6 className="rbt-block-title mb--0">Immersive visuals</h6>
-                <p className="rbt-block-desc b1 mb--0 mt--12">
-                  Quisque varius diam vel metus mattis, id aliquam diam rhoncus.
-                  Proin vitae magna in dui finibus malesuada et at nulla. Morbi
-                  elit ex, viverra vitae ante vel, blandit feugiat ligula. Fusce
-                  fermentum iaculis nibh, at sodales leo maximus a. Nullam
-                  ultricies sodales nunc, in pellentesque lorem mattis quis.
-                  Cras imperdiet est in nunc tristique lacinia. Nullam aliquam
-                  mauris eu accumsan tincidunt. Suspendisse velit ex, aliquet
-                  vel ornare vel, dignissim a tortor. Morbi ut sapien vitae odio
-                  accumsan gravida. Morbi vitae erat auctor, eleifend nunc a,
-                  lobortis neque. Praesent aliquam dignissim viverra. Maecenas
-                  lacus odio, feugiat eu nunc sit amet, maximus sagittis dolor.
-                </p>
-                <div className="rbt-block-banner-img mt--32">
-                  <Image
-                    alt="Ecommerce Product Banner"
-                    src="/assets/images/product-single/single-prd-banner/single-prd-banner-01.webp"
-                    width={1840}
-                    height={844}
-                  />
-                </div>
-                <p className="rbt-block-desc b1 mb--0 mt--12">
-                  Quisque varius diam vel metus mattis, id aliquam diam rhoncus.
-                  Proin vitae magna in dui finibus malesuada et at nulla. Morbi
-                  elit ex, viverra vitae ante vel, blandit feugiat ligula. Fusce
-                  fermentum iaculis nibh, at sodales leo maximus a. Nullam
-                  ultricies sodales nunc, in pellentesque lorem mattis quis.
-                  Cras imperdiet est in nunc tristique lacinia. Nullam aliquam
-                  mauris eu accumsan tincidunt. Suspendisse velit ex, aliquet
-                  vel ornare vel, dignissim a tortor. Morbi ut sapien vitae odio
-                  accumsan gravida. Morbi vitae erat auctor, eleifend nunc a,
-                  lobortis neque. Praesent aliquam dignissim viverra. Maecenas
-                  lacus odio, feugiat eu nunc sit amet, maximus sagittis dolor.
-                </p>
-                <p className="rbt-block-desc b1 mb--0 mt--12">
-                  sunt in culpa qui officia deserunt mollit anim id est
-                  laborum.nunc, in pellentesque lorem mattis quis. Cras
-                  imperdiet est in nunc tristique lacinia. Nullam aliquam mauris
-                  eu accumsan tincidunt. Suspendisse velit ex, aliquet vel
-                  ornare vel, dignissim a tortor. Morbi ut sapien vitae odio
-                  accumsan gravida. Morbi vitae erat auctor, eleifend nunc a,
-                  lobortis neque. Praesent aliquam dignissim viverra. Maecenas
-                  lacus odio, feugiat eu nunc sit
-                </p>
-                <div className="rbt-block-banner-video mt--32">
-                  <video
-                    src="/assets/videos/prd-single-dtls-video-01.mp4"
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
-                    preload="metadata"
-                  />
-                </div>
-                <div className="rbt-prd-feature-area mt--32">
-                  <div className="row row--12 mt_dec--24 rbt-mobile-row">
-                    {PRODUCT_FEATURES.map((feature, index) => (
-                      <div
-                        className="col-lg-4 col-md-4 col-sm-6 col-12 mt--24"
-                        key={index}
-                      >
-                        <div className="rbt-prd-feature-card rbt-bg-color-brand-50 rbt-curved-style-box">
-                          <div className="rbt-inner text-center">
-                            <span className="icon">
-                              <i className={feature.icon} />
-                            </span>
-                            <p className="title b1">{feature.title}</p>
-                            <p className="desc b2">{feature.desc}</p>
+                {description?.trim() ? (
+                  <p className="rbt-block-desc b1 mb--0 mt--12">
+                    {description}
+                  </p>
+                ) : (
+                  <>
+                    <h6 className="rbt-block-title mb--0">Immersive visuals</h6>
+                    <p className="rbt-block-desc b1 mb--0 mt--12">
+                      Quisque varius diam vel metus mattis, id aliquam diam
+                      rhoncus. Proin vitae magna in dui finibus malesuada et at
+                      nulla. Morbi elit ex, viverra vitae ante vel, blandit
+                      feugiat ligula. Fusce fermentum iaculis nibh, at sodales
+                      leo maximus a. Nullam ultricies sodales nunc, in
+                      pellentesque lorem mattis quis. Cras imperdiet est in nunc
+                      tristique lacinia. Nullam aliquam mauris eu accumsan
+                      tincidunt. Suspendisse velit ex, aliquet vel ornare vel,
+                      dignissim a tortor. Morbi ut sapien vitae odio accumsan
+                      gravida. Morbi vitae erat auctor, eleifend nunc a,
+                      lobortis neque. Praesent aliquam dignissim viverra.
+                      Maecenas lacus odio, feugiat eu nunc sit amet, maximus
+                      sagittis dolor.
+                    </p>
+                  </>
+                )}
+                {!description?.trim() ? (
+                  <>
+                    <div className="rbt-block-banner-img mt--32">
+                      <Image
+                        alt="Ecommerce Product Banner"
+                        src="/assets/images/product-single/single-prd-banner/single-prd-banner-01.webp"
+                        width={1840}
+                        height={844}
+                      />
+                    </div>
+                    <p className="rbt-block-desc b1 mb--0 mt--12">
+                      Quisque varius diam vel metus mattis, id aliquam diam
+                      rhoncus. Proin vitae magna in dui finibus malesuada et at
+                      nulla. Morbi elit ex, viverra vitae ante vel, blandit
+                      feugiat ligula. Fusce fermentum iaculis nibh, at sodales
+                      leo maximus a. Nullam ultricies sodales nunc, in
+                      pellentesque lorem mattis quis. Cras imperdiet est in nunc
+                      tristique lacinia. Nullam aliquam mauris eu accumsan
+                      tincidunt. Suspendisse velit ex, aliquet vel ornare vel,
+                      dignissim a tortor. Morbi ut sapien vitae odio accumsan
+                      gravida. Morbi vitae erat auctor, eleifend nunc a,
+                      lobortis neque. Praesent aliquam dignissim viverra.
+                      Maecenas lacus odio, feugiat eu nunc sit amet, maximus
+                      sagittis dolor.
+                    </p>
+                    <p className="rbt-block-desc b1 mb--0 mt--12">
+                      sunt in culpa qui officia deserunt mollit anim id est
+                      laborum.nunc, in pellentesque lorem mattis quis. Cras
+                      imperdiet est in nunc tristique lacinia. Nullam aliquam
+                      mauris eu accumsan tincidunt. Suspendisse velit ex,
+                      aliquet vel ornare vel, dignissim a tortor. Morbi ut
+                      sapien vitae odio accumsan gravida. Morbi vitae erat
+                      auctor, eleifend nunc a, lobortis neque. Praesent aliquam
+                      dignissim viverra. Maecenas lacus odio, feugiat eu nunc
+                      sit
+                    </p>
+                    <div className="rbt-block-banner-video mt--32">
+                      <video
+                        src="/assets/videos/prd-single-dtls-video-01.mp4"
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                      />
+                    </div>
+                    <div className="rbt-prd-feature-area mt--32">
+                      <div className="row row--12 mt_dec--24 rbt-mobile-row">
+                        {PRODUCT_FEATURES.map((feature, index) => (
+                          <div
+                            className="col-lg-4 col-md-4 col-sm-6 col-12 mt--24"
+                            key={index}
+                          >
+                            <div className="rbt-prd-feature-card rbt-bg-color-brand-50 rbt-curved-style-box">
+                              <div className="rbt-inner text-center">
+                                <span className="icon">
+                                  <i className={feature.icon} />
+                                </span>
+                                <p className="title b1">{feature.title}</p>
+                                <p className="desc b2">{feature.desc}</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <p className="rbt-block-desc b1 mb--0 mt--12">
-                  Egestas purus a luctus ridiculus ac malesuada arcu a. Euismod
-                  dapibus commodo metus phasellus blandit suspendisse euismod
-                  orci tellus. Habitasse hendrerit dolor euismod varius nisi.
-                  Platea praesent nisi ultrices rhoncus volutpat nostra.
-                  Efficitur dui nec massa nulla nostra nunc massa ornare
-                  fermentum. Parturient turpis per adipiscing vestibulum donec
-                  tincidunt ligula. Purus tristique ut dolor mollis ut cras
-                  scelerisque nec. Massa dis mus senectus tortor ligula.
-                  Ullamcorper molestie placerat bibendum hac aptent volutpat ad
-                  laoreet
-                </p>
-                <p className="rbt-block-desc b1 mb--0 mt--12">
-                  Scelerisque sociosqu sagittis bibendum quam id; ultrices
-                  placerat adipiscing. Imperdiet egestas ullamcorper cras
-                  blandit himenaeos auctor lacus commodo. Feugiat quisque
-                  nascetur tincidunt duis phasellus, sagittis euismod. Donec
-                  nisl senectus risus nullam quisque vivamus. Dapibus pulvinar
-                  lobortis auctor quam neque. Nibh at maximus taciti mattis
-                  rutrum viverra. Dictum ipsum tortor nibh parturient laoreet
-                  ullamcorper rhoncus tincidunt. At risus aliquam ligula ut
-                  vivamus mi sodales volutpat. Cursus sodales hendrerit donec
-                  efficitur penatibus.
-                </p>
-                <div className="rbt-block-banner-img mt--32">
-                  <Image
-                    alt="Ecommerce Product Banner"
-                    src="/assets/images/product-single/single-prd-banner/single-prd-banner-02.webp"
-                    width={1840}
-                    height={844}
-                  />
-                </div>
+                    </div>
+                    <p className="rbt-block-desc b1 mb--0 mt--12">
+                      Egestas purus a luctus ridiculus ac malesuada arcu a.
+                      Euismod dapibus commodo metus phasellus blandit
+                      suspendisse euismod orci tellus. Habitasse hendrerit dolor
+                      euismod varius nisi. Platea praesent nisi ultrices rhoncus
+                      volutpat nostra. Efficitur dui nec massa nulla nostra nunc
+                      massa ornare fermentum. Parturient turpis per adipiscing
+                      vestibulum donec tincidunt ligula. Purus tristique ut
+                      dolor mollis ut cras scelerisque nec. Massa dis mus
+                      senectus tortor ligula. Ullamcorper molestie placerat
+                      bibendum hac aptent volutpat ad laoreet
+                    </p>
+                    <p className="rbt-block-desc b1 mb--0 mt--12">
+                      Scelerisque sociosqu sagittis bibendum quam id; ultrices
+                      placerat adipiscing. Imperdiet egestas ullamcorper cras
+                      blandit himenaeos auctor lacus commodo. Feugiat quisque
+                      nascetur tincidunt duis phasellus, sagittis euismod. Donec
+                      nisl senectus risus nullam quisque vivamus. Dapibus
+                      pulvinar lobortis auctor quam neque. Nibh at maximus
+                      taciti mattis rutrum viverra. Dictum ipsum tortor nibh
+                      parturient laoreet ullamcorper rhoncus tincidunt. At risus
+                      aliquam ligula ut vivamus mi sodales volutpat. Cursus
+                      sodales hendrerit donec efficitur penatibus.
+                    </p>
+                    <div className="rbt-block-banner-img mt--32">
+                      <Image
+                        alt="Ecommerce Product Banner"
+                        src="/assets/images/product-single/single-prd-banner/single-prd-banner-02.webp"
+                        width={1840}
+                        height={844}
+                      />
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           )}

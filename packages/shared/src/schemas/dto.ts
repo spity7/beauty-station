@@ -112,6 +112,10 @@ export const uploadResponseSchema = z.object({
   publicUrl: z.string().url(),
 });
 
+export const deleteUploadSchema = z.object({
+  url: z.string().url(),
+});
+
 export const errorResponseSchema = z.object({
   error: z.string(),
 });

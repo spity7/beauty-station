@@ -5,7 +5,11 @@
  * REST API for the ecommerce platform catalog, auth, cart, orders, health, and uploads.
  * OpenAPI spec version: 1.0.0
  */
-import type { UploadFile201, UploadFileBody } from "../platform.schemas";
+import type {
+  DeleteUploadedFileBody,
+  UploadFile201,
+  UploadFileBody,
+} from "../platform.schemas";
 
 import { customInstance } from "../../mutator";
 
@@ -27,8 +31,24 @@ export const getUploads = () => {
       data: formData,
     });
   };
-  return { uploadFile };
+  /**
+   * @summary Delete a catalog image from storage
+   */
+  const deleteUploadedFile = (
+    deleteUploadedFileBody: DeleteUploadedFileBody
+  ) => {
+    return customInstance<void>({
+      url: `/api/uploads`,
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      data: deleteUploadedFileBody,
+    });
+  };
+  return { uploadFile, deleteUploadedFile };
 };
 export type UploadFileResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUploads>["uploadFile"]>>
+>;
+export type DeleteUploadedFileResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUploads>["deleteUploadedFile"]>>
 >;

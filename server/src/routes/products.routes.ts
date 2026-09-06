@@ -20,6 +20,10 @@ import {
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toProductDto } from "../utils/serializers.js";
 import { generateSku, slugify } from "../utils/strings.js";
+import {
+  collectRemovedManagedCatalogImages,
+  deleteManagedCatalogImagesIfPresent,
+} from "../services/managed-catalog-storage.js";
 
 export const productsRouter = Router();
 
@@ -151,10 +155,10 @@ productsRouter.patch(
     const previousAttributeSlugs = extractAttributeSlugs(
       product.attributes as Record<string, string | string[]>
     );
+    const previousImages = [...product.images];
 
     if (payload.name) {
       product.name = payload.name;
-      product.slug = slugify(payload.name);
     }
 
     if (payload.categoryId !== undefined) {
@@ -232,6 +236,12 @@ productsRouter.patch(
       diffAttributeSlugCounts(previousAttributeSlugs, nextAttributeSlugs)
     );
 
+    if (payload.images !== undefined) {
+      await deleteManagedCatalogImagesIfPresent(
+        collectRemovedManagedCatalogImages(previousImages, product.images)
+      );
+    }
+
     res.json(toProductDto(product));
   })
 );
@@ -266,6 +276,8 @@ productsRouter.delete(
         ).map((attributeSlug) => [attributeSlug, -1])
       )
     );
+
+    await deleteManagedCatalogImagesIfPresent(product.images);
 
     res.status(204).send();
   })

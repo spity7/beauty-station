@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { getAccessToken, setGuestCartId } from "@platform/api-client";
-import { clearGuestCartId, getOrCreateGuestCartId } from "@/lib/guest-cart";
+import { getOrCreateGuestCartId } from "@/lib/guest-cart";
+import { mergeGuestCartIfNeeded } from "@/lib/guest-cart-merge";
 import { loadServerCart } from "@/lib/cart-sync";
 import { useStore } from "@/context/store";
 import { useAuthSession } from "@/providers/auth-session-provider";
@@ -23,13 +24,20 @@ function applyServerCartToStore(
   });
 }
 
-function syncGuestCartIdForSession(isAuthenticated: boolean): void {
-  if (isAuthenticated) {
-    clearGuestCartId();
-    return;
-  }
-
+function ensureGuestCartIdForApiClient(): void {
   setGuestCartId(getOrCreateGuestCartId());
+}
+
+async function syncCartForAuthenticatedUser(): Promise<void> {
+  await mergeGuestCartIfNeeded();
+  const serverCart = await loadServerCart();
+  applyServerCartToStore(serverCart);
+}
+
+async function syncCartForGuestUser(): Promise<void> {
+  ensureGuestCartIdForApiClient();
+  const serverCart = await loadServerCart();
+  applyServerCartToStore(serverCart);
 }
 
 export function CartSessionSync() {
@@ -40,15 +48,22 @@ export function CartSessionSync() {
       return;
     }
 
-    syncGuestCartIdForSession(Boolean(user));
-    void loadServerCart().then(applyServerCartToStore);
+    if (user) {
+      void syncCartForAuthenticatedUser();
+      return;
+    }
+
+    void syncCartForGuestUser();
   }, [user, loading]);
 
   useEffect(() => {
     function onSessionUpdated() {
-      const isAuthenticated = Boolean(getAccessToken());
-      syncGuestCartIdForSession(isAuthenticated);
-      void loadServerCart().then(applyServerCartToStore);
+      if (getAccessToken()) {
+        void syncCartForAuthenticatedUser();
+        return;
+      }
+
+      void syncCartForGuestUser();
     }
 
     window.addEventListener("auth:session-updated", onSessionUpdated);

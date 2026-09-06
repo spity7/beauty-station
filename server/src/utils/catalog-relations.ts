@@ -167,3 +167,31 @@ export async function countProductsUsingAttributeSlug(
     [`attributes.${slug}`]: { $exists: true, $nin: [null, ""] },
   });
 }
+
+export async function assertNoProductsUseRemovedAttributeValues(
+  slug: string,
+  previousValues: string[],
+  nextValues: string[]
+): Promise<void> {
+  const nextSet = new Set(nextValues);
+  const removedValues = previousValues.filter((value) => !nextSet.has(value));
+  if (removedValues.length === 0) {
+    return;
+  }
+
+  for (const value of removedValues) {
+    const referencingProducts = await Product.countDocuments({
+      $or: [
+        { [`attributes.${slug}`]: value },
+        { [`attributes.${slug}`]: { $in: [value] } },
+      ],
+    });
+
+    if (referencingProducts > 0) {
+      throw new AppError(
+        409,
+        `Cannot remove value "${value}": ${referencingProducts} product(s) still use it`
+      );
+    }
+  }
+}

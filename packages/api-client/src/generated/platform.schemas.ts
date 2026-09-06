@@ -3542,6 +3542,22 @@ export type UploadFile503 = {
   error: string;
 };
 
+export type DeleteUploadedFileBody = {
+  url: string;
+};
+
+export type DeleteUploadedFile400 = {
+  error: string;
+};
+
+export type DeleteUploadedFile401 = {
+  error: string;
+};
+
+export type DeleteUploadedFile503 = {
+  error: string;
+};
+
 export type UploadUserAvatarBody = {
   file: Blob;
 };

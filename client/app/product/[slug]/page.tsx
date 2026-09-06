@@ -61,7 +61,7 @@ export default async function ProductPage({ params }: PageProps) {
     <StorefrontChrome>
       <BreadCrumb product={product} />
       <DetailsCosmetic product={product} />
-      <Description4 />
+      <Description4 description={product.description} />
       <SimillerProducts4 />
       <BottomStickyProduct />
     </StorefrontChrome>

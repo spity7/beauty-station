@@ -175,6 +175,12 @@ export interface Product {
 
   /** MongoDB product id when loaded from API (cart/checkout). */
   apiProductId?: string;
+
+  /** Full gallery when loaded from API. */
+  images?: string[];
+  brandName?: string;
+  description?: string;
+  attributes?: Record<string, string | string[]>;
 }
 
 // Cart item: Product with required quantity

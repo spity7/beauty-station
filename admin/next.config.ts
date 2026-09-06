@@ -9,6 +9,15 @@ const basePath = process.env.NEXT_PUBLIC_BASE_URL?.trim();
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
   transpilePackages: ["@platform/shared", "@platform/site-config"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

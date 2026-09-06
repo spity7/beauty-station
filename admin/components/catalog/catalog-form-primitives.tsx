@@ -2,26 +2,181 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { DragEvent, ReactNode } from "react";
+import { useRef, useState } from "react";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { Icon } from "@/components/layout/icon";
 import { platformInstance } from "@platform/api-client";
 import { cn } from "@/utils/cn";
 
-const PLACEHOLDER_IMAGE = "/assets/products/oat-biscuit.svg";
+export const CATALOG_IMAGE_ACCEPT = ".png,.jpg,.jpeg,.webp";
 
-export type ThumbnailImageSource = "none" | "upload" | "url";
+const CATALOG_IMAGE_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
-export function inferThumbnailImageSource(
-  imageUrl: string
-): ThumbnailImageSource {
-  if (!imageUrl.trim()) {
-    return "none";
+export function isCatalogImageFile(file: File): boolean {
+  return CATALOG_IMAGE_MIME_TYPES.has(file.type);
+}
+
+export function getCatalogImageFilesFromDataTransfer(
+  dataTransfer: DataTransfer
+): File[] {
+  return [...dataTransfer.files].filter(isCatalogImageFile);
+}
+
+function reorderList<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= items.length ||
+    toIndex >= items.length
+  ) {
+    return items;
   }
-  if (imageUrl.includes("storage.googleapis.com")) {
-    return "upload";
+
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) {
+    return items;
   }
-  return "url";
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+export function useCatalogImageDropHandlers(options: {
+  disabled?: boolean;
+  onFiles: (files: File[]) => void;
+  single?: boolean;
+}) {
+  const { disabled = false, onFiles, single = false } = options;
+  const dragDepthRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  function hasFilePayload(dataTransfer: DataTransfer): boolean {
+    return [...dataTransfer.types].includes("Files");
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (disabled || !hasFilePayload(event.dataTransfer)) {
+      return;
+    }
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (disabled || !hasFilePayload(event.dataTransfer)) {
+      return;
+    }
+    event.dataTransfer.dropEffect = "copy";
+    setIsDragging(true);
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    if (disabled) {
+      return;
+    }
+
+    const files = getCatalogImageFilesFromDataTransfer(event.dataTransfer);
+    if (files.length === 0) {
+      return;
+    }
+
+    onFiles(single ? files.slice(0, 1) : files);
+  }
+
+  return {
+    isDragging,
+    dropZoneProps: {
+      onDragEnter: handleDragEnter,
+      onDragLeave: handleDragLeave,
+      onDragOver: handleDragOver,
+      onDrop: handleDrop,
+    },
+  };
+}
+
+function CatalogDropOverlay({ label }: { label: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center rounded-[inherit] bg-brand-50/90 p-3 text-center">
+      <div>
+        <Icon className="mx-auto h-5 w-5 text-brand-600" name="upload" />
+        <p className="mt-2 text-[12px] font-semibold text-brand-700">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+export type ThumbnailPreviewState = "none" | "saved" | "pending";
+
+export function getThumbnailPreviewState(
+  savedImageUrl: string,
+  hasPendingFile: boolean
+): ThumbnailPreviewState {
+  if (hasPendingFile) {
+    return "pending";
+  }
+  if (savedImageUrl.trim()) {
+    return "saved";
+  }
+  return "none";
+}
+
+export type PendingCatalogFile = {
+  file: File;
+  id: string;
+  previewUrl: string;
+};
+
+export type CatalogImagePreview =
+  | { id: string; kind: "saved"; url: string }
+  | { id: string; kind: "pending"; file: File; previewUrl: string };
+
+export function createPendingCatalogFile(file: File): PendingCatalogFile {
+  return {
+    id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    file,
+    previewUrl: URL.createObjectURL(file),
+  };
+}
+
+export function revokePendingCatalogFile(pending: PendingCatalogFile): void {
+  URL.revokeObjectURL(pending.previewUrl);
+}
+
+export function revokePendingCatalogFiles(
+  pendingFiles: PendingCatalogFile[]
+): void {
+  for (const pending of pendingFiles) {
+    revokePendingCatalogFile(pending);
+  }
+}
+
+export function revokeBlobPreviewUrl(url: string): void {
+  if (url.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export async function uploadCatalogImage(
@@ -36,6 +191,59 @@ export async function uploadCatalogImage(
     formData
   );
   return result.data.publicUrl;
+}
+
+export async function uploadCatalogImages(
+  files: File[],
+  folder: "categories" | "brands" | "products"
+): Promise<string[]> {
+  if (files.length === 0) {
+    return [];
+  }
+  return Promise.all(files.map((file) => uploadCatalogImage(file, folder)));
+}
+
+export function isHostedCatalogImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.hostname === "storage.googleapis.com" &&
+      /\/(categories|brands|products)\//.test(parsed.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function collectRemovedHostedImages(
+  previousUrls: string[],
+  nextUrls: string[]
+): string[] {
+  const nextSet = new Set(nextUrls);
+  return previousUrls.filter(
+    (url) => isHostedCatalogImageUrl(url) && !nextSet.has(url)
+  );
+}
+
+export async function deleteCatalogImage(url: string): Promise<void> {
+  await platformInstance.delete("/api/uploads", { data: { url } });
+}
+
+export async function deleteHostedCatalogImages(urls: string[]): Promise<void> {
+  const hosted = urls.filter(isHostedCatalogImageUrl);
+  if (hosted.length === 0) {
+    return;
+  }
+
+  const results = await Promise.allSettled(
+    hosted.map((url) => deleteCatalogImage(url))
+  );
+  const failed = results.filter((result) => result.status === "rejected");
+  if (failed.length > 0) {
+    console.warn(
+      "Failed to remove one or more replaced catalog images from storage."
+    );
+  }
 }
 
 export function CatalogFormError({ message }: { message: string | null }) {
@@ -235,42 +443,71 @@ export function ControlledTextarea({
 
 export function ThumbnailUploadCard({
   alt,
-  imageSource = "none",
-  imageUrl,
-  loading,
+  disabled = false,
   onClear,
-  onImageUrlChange,
   onUpload,
+  previewState,
+  previewUrl,
   title = "Thumbnail",
 }: {
   alt: string;
-  imageSource?: ThumbnailImageSource;
-  imageUrl: string;
-  loading?: boolean;
+  disabled?: boolean;
   onClear?: () => void;
-  onImageUrlChange?: (url: string) => void;
-  onUpload: (file: File) => Promise<void>;
+  onUpload: (file: File) => void;
+  previewState: ThumbnailPreviewState;
+  previewUrl: string;
   title?: string;
 }) {
-  const preview = imageUrl || PLACEHOLDER_IMAGE;
-  const isRemote = preview.startsWith("http");
-  const hasImage = imageSource !== "none" && Boolean(imageUrl);
-  const urlFieldLocked = imageSource === "upload";
+  const hasImage = previewState !== "none" && Boolean(previewUrl);
+  const isRemote = previewUrl.startsWith("http");
+  const isBlobPreview = previewUrl.startsWith("blob:");
+
+  const helperText =
+    previewState === "pending"
+      ? "Preview only — the file uploads to storage when you save."
+      : previewState === "saved"
+        ? "Drag a new image here or click to replace. Uploads on save."
+        : "Drag and drop a square PNG, JPG, or WebP image, or click to browse.";
+
+  const { isDragging, dropZoneProps } = useCatalogImageDropHandlers({
+    disabled,
+    onFiles: (files) => {
+      const file = files[0];
+      if (file) {
+        onUpload(file);
+      }
+    },
+    single: true,
+  });
 
   return (
     <FormCard title={title}>
       <div className="flex flex-col items-center text-center">
-        <label className="group relative grid h-36 w-36 cursor-pointer place-items-center overflow-hidden rounded-base bg-surface-card shadow-soft transition-shadow hover:shadow-lift">
-          <span className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-surface-card text-ink-400 shadow-card transition-colors group-hover:text-brand-600">
-            <Icon className="h-3.5 w-3.5" name="pencil" />
-          </span>
-          {isRemote || preview.startsWith("/") ? (
+        <label
+          {...dropZoneProps}
+          className={cn(
+            "group relative grid h-36 w-36 place-items-center overflow-hidden rounded-base bg-surface-card shadow-soft transition-shadow",
+            disabled
+              ? "cursor-not-allowed opacity-60"
+              : "cursor-pointer hover:shadow-lift",
+            isDragging && "ring-2 ring-brand-500 ring-offset-2"
+          )}
+        >
+          {isDragging ? (
+            <CatalogDropOverlay label="Drop image to upload" />
+          ) : null}
+          {!disabled ? (
+            <span className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-surface-card text-ink-400 shadow-card transition-colors group-hover:text-brand-600">
+              <Icon className="h-3.5 w-3.5" name="pencil" />
+            </span>
+          ) : null}
+          {hasImage ? (
             <Image
               alt={alt}
               className="absolute inset-0 h-full w-full object-cover p-2"
               height={144}
-              src={preview}
-              unoptimized={isRemote}
+              src={previewUrl}
+              unoptimized={isRemote || isBlobPreview}
               width={144}
             />
           ) : (
@@ -279,55 +516,31 @@ export function ThumbnailUploadCard({
             </span>
           )}
           <input
-            accept=".png,.jpg,.jpeg,.webp"
+            accept={CATALOG_IMAGE_ACCEPT}
             aria-label={`Upload ${title.toLowerCase()}`}
             className="sr-only"
-            disabled={loading}
-            onChange={async (event) => {
+            disabled={disabled}
+            onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
-              await onUpload(file);
+              onUpload(file);
               event.target.value = "";
             }}
             type="file"
           />
         </label>
         <p className="mt-4 text-[12px] text-ink-400">
-          {loading
-            ? "Uploading…"
-            : urlFieldLocked
-              ? "Uploaded to storage. Clear the image to paste an external URL."
-              : hasImage
-                ? "Upload a new file or edit the URL below."
-                : "Upload a square image or paste a URL below. PNG, JPG, or WebP."}
+          {disabled ? "Saving…" : helperText}
         </p>
-        {onImageUrlChange ? (
-          <label className="mt-4 block w-full text-left">
-            <span className="text-[12px] font-semibold text-ink-600">
-              {urlFieldLocked ? "Hosted image URL" : "Or paste image URL"}
-            </span>
-            <input
-              className={cn(
-                "mt-1.5 h-9 w-full rounded-base border border-surface-line bg-surface-body px-3 text-[13px] placeholder:text-ink-400 focus:border-brand-600",
-                urlFieldLocked &&
-                  "cursor-not-allowed bg-surface-muted text-ink-500"
-              )}
-              disabled={loading || urlFieldLocked}
-              onChange={(event) => onImageUrlChange(event.target.value)}
-              placeholder="https://…"
-              readOnly={urlFieldLocked}
-              value={imageUrl}
-            />
-          </label>
-        ) : null}
         {hasImage && onClear ? (
           <button
-            className="mt-4 inline-flex h-9 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted"
+            className="mt-4 inline-flex h-9 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
             onClick={onClear}
             type="button"
           >
             <Icon className="h-3.5 w-3.5" name="x" />
-            Clear image
+            Remove image
           </button>
         ) : null}
       </div>
@@ -551,34 +764,103 @@ export function mergeProductFormAttributes(
 }
 
 export function ProductImageList({
+  disabled = false,
   images,
   onRemove,
+  onReorder,
 }: {
-  images: string[];
-  onRemove: (image: string) => void;
+  disabled?: boolean;
+  images: CatalogImagePreview[];
+  onRemove: (id: string) => void;
+  onReorder?: (images: CatalogImagePreview[]) => void;
 }) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
   if (images.length === 0) {
     return null;
+  }
+
+  function handleDragStart(id: string, event: DragEvent<HTMLLIElement>) {
+    if (disabled || !onReorder) {
+      return;
+    }
+    setDraggedId(id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  }
+
+  function handleDragOver(id: string, event: DragEvent<HTMLLIElement>) {
+    if (disabled || !onReorder || !draggedId || draggedId === id) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDropTargetId(id);
+  }
+
+  function handleDrop(id: string, event: DragEvent<HTMLLIElement>) {
+    event.preventDefault();
+    if (disabled || !onReorder || !draggedId || draggedId === id) {
+      setDraggedId(null);
+      setDropTargetId(null);
+      return;
+    }
+
+    const fromIndex = images.findIndex((image) => image.id === draggedId);
+    const toIndex = images.findIndex((image) => image.id === id);
+    onReorder(reorderList(images, fromIndex, toIndex));
+    setDraggedId(null);
+    setDropTargetId(null);
+  }
+
+  function handleDragEnd() {
+    setDraggedId(null);
+    setDropTargetId(null);
   }
 
   return (
     <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
       {images.map((image) => {
-        const fileName = image.split("/").pop() ?? "image";
-        const isRemote = image.startsWith("http");
+        const previewUrl =
+          image.kind === "saved" ? image.url : image.previewUrl;
+        const fileName =
+          image.kind === "saved"
+            ? (image.url.split("/").pop() ?? "image")
+            : image.file.name;
+        const isRemote = previewUrl.startsWith("http");
+        const isBlobPreview = previewUrl.startsWith("blob:");
+        const isDragging = draggedId === image.id;
+        const isDropTarget = dropTargetId === image.id;
 
         return (
           <li
-            className="group relative overflow-hidden rounded-base border border-surface-line bg-surface-body"
-            key={image}
+            className={cn(
+              "group relative overflow-hidden rounded-base border bg-surface-body transition-shadow",
+              isDragging && "opacity-50",
+              isDropTarget
+                ? "border-brand-500 ring-2 ring-brand-200"
+                : "border-surface-line"
+            )}
+            draggable={Boolean(onReorder) && !disabled}
+            key={image.id}
+            onDragEnd={handleDragEnd}
+            onDragOver={(event) => handleDragOver(image.id, event)}
+            onDragStart={(event) => handleDragStart(image.id, event)}
+            onDrop={(event) => handleDrop(image.id, event)}
           >
-            {isRemote || image.startsWith("/") ? (
+            {onReorder && !disabled ? (
+              <span className="absolute left-1.5 top-1.5 z-10 grid h-7 w-7 cursor-grab place-items-center rounded-full bg-surface-card/95 text-ink-400 shadow-card active:cursor-grabbing">
+                <Icon className="h-3.5 w-3.5" name="grip-vertical" />
+              </span>
+            ) : null}
+            {isRemote || previewUrl.startsWith("/") || isBlobPreview ? (
               <Image
                 alt={fileName}
                 className="aspect-square w-full object-cover"
                 height={96}
-                src={image}
-                unoptimized={isRemote}
+                src={previewUrl}
+                unoptimized={isRemote || isBlobPreview}
                 width={96}
               />
             ) : (
@@ -586,10 +868,16 @@ export function ProductImageList({
                 {fileName}
               </div>
             )}
+            {image.kind === "pending" ? (
+              <span className="absolute bottom-1.5 left-1.5 rounded-full bg-surface-card/95 px-2 py-0.5 text-[10px] font-semibold text-ink-500 shadow-card">
+                Pending
+              </span>
+            ) : null}
             <button
               aria-label={`Remove ${fileName}`}
-              className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-surface-card/95 text-ink-500 opacity-0 shadow-card transition-opacity group-hover:opacity-100 hover:text-danger-500"
-              onClick={() => onRemove(image)}
+              className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-surface-card/95 text-ink-500 opacity-0 shadow-card transition-opacity group-hover:opacity-100 hover:text-danger-500 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={disabled}
+              onClick={() => onRemove(image.id)}
               type="button"
             >
               <Icon className="h-3.5 w-3.5" name="x" />
@@ -598,6 +886,98 @@ export function ProductImageList({
         );
       })}
     </ul>
+  );
+}
+
+export function CatalogMediaUploadField({
+  disabled = false,
+  helperText,
+  images,
+  label = "Product images",
+  onAddFiles,
+  onRemove,
+  onReorder,
+}: {
+  disabled?: boolean;
+  helperText: string;
+  images: CatalogImagePreview[];
+  label?: string;
+  onAddFiles: (files: File[]) => void;
+  onRemove: (id: string) => void;
+  onReorder?: (images: CatalogImagePreview[]) => void;
+}) {
+  const inputId = "catalog-media-upload-input";
+  const { isDragging, dropZoneProps } = useCatalogImageDropHandlers({
+    disabled,
+    onFiles: onAddFiles,
+  });
+
+  return (
+    <div className="block">
+      <span className="text-[13px] font-semibold text-ink-700">{label}</span>
+      <div
+        {...dropZoneProps}
+        className={cn(
+          "relative mt-1.5 rounded-base border border-dashed border-surface-line bg-surface-body px-4 py-5 transition-colors",
+          !disabled && "hover:border-brand-300 hover:bg-brand-50/40",
+          isDragging && "border-brand-500 bg-brand-50/70 ring-2 ring-brand-200"
+        )}
+      >
+        {isDragging ? <CatalogDropOverlay label="Drop images to add" /> : null}
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <Icon className="h-5 w-5 text-brand-600" name="upload" />
+          <p className="mt-2 text-[13px] font-semibold text-ink-700">
+            Drag and drop images here
+          </p>
+          <p className="mt-1 text-[12px] text-ink-400">
+            PNG, JPG, or WebP. Uploads on save.
+          </p>
+          <label
+            className={cn(
+              "mt-3 inline-flex h-9 cursor-pointer items-center rounded-base bg-brand-50 px-3 text-[13px] font-semibold text-brand-600 hover:bg-brand-100",
+              disabled && "cursor-not-allowed opacity-60"
+            )}
+            htmlFor={inputId}
+          >
+            Browse files
+          </label>
+          <input
+            accept={CATALOG_IMAGE_ACCEPT}
+            className="sr-only"
+            disabled={disabled}
+            id={inputId}
+            multiple
+            onChange={(event) => {
+              const files = [...(event.target.files ?? [])].filter(
+                isCatalogImageFile
+              );
+              if (files.length > 0) {
+                onAddFiles(files);
+              }
+              event.target.value = "";
+            }}
+            type="file"
+          />
+        </div>
+      </div>
+      <p className="mt-2 text-[12px] text-ink-400">{helperText}</p>
+      {images.length > 0 ? (
+        <>
+          {onReorder ? (
+            <p className="mt-3 text-[12px] text-ink-400">
+              Drag images to reorder. The first image is used as the primary
+              thumbnail.
+            </p>
+          ) : null}
+          <ProductImageList
+            disabled={disabled}
+            images={images}
+            onRemove={onRemove}
+            onReorder={onReorder}
+          />
+        </>
+      ) : null}
+    </div>
   );
 }
 
