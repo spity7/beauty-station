@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SelectField } from "@/components/forms/admin-form-primitives";
 import { Icon } from "@/components/layout/icon";
 import { AppSelect } from "@/components/ui/app-select";
@@ -46,7 +46,9 @@ export function ProductForm({
     mode === "edit" ? "percentage" : "none"
   );
   const [discountPercent, setDiscountPercent] = useState(10);
-  const [status, setStatus] = useState<ProductStatus>("published");
+  const [status, setStatus] = useState<ProductStatus>(
+    mode === "edit" ? "published" : "draft"
+  );
   const [thumbPreview, setThumbPreview] = useState(
     mode === "edit"
       ? `${baseURL}assets/images/catagory-img/cat-img-shoe-a-01.webp`
@@ -62,6 +64,28 @@ export function ProductForm({
     mode === "edit"
       ? ["general", "advanced", "reviews"]
       : ["general", "advanced", "seo"];
+
+  const statusHelp = useMemo(() => {
+    switch (status) {
+      case "published":
+        return "Published products appear in storefront shop and product pages.";
+      case "archived":
+        return "Archived products are kept for reference but hidden from storefront views.";
+      default:
+        return "Draft products are hidden from published storefront views.";
+    }
+  }, [status]);
+
+  const statusOptions = useMemo(
+    () => [
+      { label: "Draft", value: "draft" },
+      { label: "Published", value: "published" },
+      ...(mode === "edit"
+        ? [{ label: "Archived", value: "archived" as const }]
+        : []),
+    ],
+    [mode]
+  );
 
   function updateFiles(files: FileList | null, target: "media" | "thumb") {
     if (!files?.length) {
@@ -527,16 +551,10 @@ export function ProductForm({
             <AppSelect
               name="status"
               onValueChange={(value) => setStatus(value as ProductStatus)}
-              options={[
-                { label: "Published", value: "published" },
-                { label: "Draft", value: "draft" },
-                { label: "Archived", value: "archived" },
-              ]}
+              options={statusOptions}
               value={status}
             />
-            <p className="mt-2 text-[12px] text-ink-400">
-              Set the product status.
-            </p>
+            <p className="mt-2 text-[12px] text-ink-400">{statusHelp}</p>
           </Card>
 
           <Card title="Product Details" titleTag="h3">

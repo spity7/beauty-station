@@ -59,12 +59,14 @@ function productKey(product: Product): string {
 }
 
 const statusClass: Record<ProductStatus, string> = {
+  archived: "bg-surface-muted text-ink-600",
   draft: "bg-surface-muted text-ink-600",
   "low stock": "bg-warning-50 text-warning-600",
   published: "bg-success-50 text-success-600",
 };
 
 const statusLabel: Record<ProductStatus, string> = {
+  archived: "Archived",
   draft: "Draft",
   "low stock": "Low stock",
   published: "Published",
@@ -306,6 +308,7 @@ export function ProductListTable({
                 { label: "All statuses", value: "all" },
                 { label: "Published", value: "published" },
                 { label: "Draft", value: "draft" },
+                { label: "Archived", value: "archived" },
                 { label: "Low stock", value: "low stock" },
               ]}
               size="lg"

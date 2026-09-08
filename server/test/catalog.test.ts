@@ -71,6 +71,12 @@ describe("catalog API", () => {
     await request(app).get("/api/products/slug/does-not-exist").expect(404);
   });
 
+  it("returns 404 for draft or archived product slug", async () => {
+    const draft = await seedDraftProduct();
+
+    await request(app).get(`/api/products/slug/${draft.slug}`).expect(404);
+  });
+
   it("forbids customers from creating products", async () => {
     const { body } = await registerCustomer(app);
 
@@ -134,6 +140,55 @@ describe("catalog API", () => {
       .expect(204);
 
     await request(app).get(`/api/products/${productId}`).expect(404);
+  });
+
+  it("rejects publishing a product linked to draft catalog entities", async () => {
+    const { body } = await registerAdmin(app);
+    const suffix = Date.now();
+
+    const draftCategory = await request(app)
+      .post("/api/categories")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Draft Category ${suffix}`,
+        status: "draft",
+      })
+      .expect(201);
+
+    const draftBrand = await request(app)
+      .post("/api/brands")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Draft Brand ${suffix}`,
+        status: "draft",
+      })
+      .expect(201);
+
+    await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Blocked Publish Category ${suffix}`,
+        sku: `BLK-CAT-${suffix}`,
+        price: 10,
+        stock: 1,
+        status: "published",
+        categoryId: draftCategory.body.id,
+      })
+      .expect(400);
+
+    await request(app)
+      .post("/api/products")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Blocked Publish Brand ${suffix}`,
+        sku: `BLK-BRD-${suffix}`,
+        price: 10,
+        stock: 1,
+        status: "published",
+        brandId: draftBrand.body.id,
+      })
+      .expect(400);
   });
 
   it("keeps category status when patching image only", async () => {

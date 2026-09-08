@@ -53,6 +53,25 @@ export async function fetchPublishedProducts(limit = 8) {
   });
 }
 
+export async function fetchPublishedCategories(limit = 100) {
+  return platformApi.listCategory({
+    status: "published",
+    limit,
+  });
+}
+
+export async function fetchStorefrontBrands(limit = 100) {
+  const response = await platformApi.listBrand({
+    status: "published",
+    limit,
+  });
+
+  return {
+    ...response,
+    data: response.data.filter((brand) => brand.visibility !== "Hidden"),
+  };
+}
+
 export async function fetchProductBySlug(slug: string) {
   try {
     return await platformApi.getProductBySlug(slug);

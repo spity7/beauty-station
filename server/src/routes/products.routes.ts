@@ -15,6 +15,7 @@ import {
   extractAttributeSlugs,
   requireBrand,
   requireCategory,
+  assertPublishableProductLinks,
   validateProductAttributes,
 } from "../utils/catalog-relations.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -30,7 +31,10 @@ export const productsRouter = Router();
 productsRouter.get(
   "/slug/:slug",
   asyncHandler(async (req, res) => {
-    const product = await Product.findOne({ slug: req.params.slug });
+    const product = await Product.findOne({
+      slug: req.params.slug,
+      status: "published",
+    });
     if (!product) {
       throw new AppError(404, "Product not found");
     }
@@ -96,6 +100,12 @@ productsRouter.post(
       ? await requireCategory(payload.categoryId)
       : null;
     const brand = payload.brandId ? await requireBrand(payload.brandId) : null;
+
+    await assertPublishableProductLinks({
+      status: payload.status,
+      categoryId: payload.categoryId,
+      brandId: payload.brandId,
+    });
 
     try {
       const product = await Product.create({
@@ -186,6 +196,22 @@ productsRouter.patch(
     if (payload.attributes !== undefined) {
       product.attributes = await validateProductAttributes(payload.attributes);
     }
+
+    const nextStatus = payload.status ?? product.status;
+    const publishCategoryId =
+      payload.categoryId !== undefined
+        ? payload.categoryId || undefined
+        : product.categoryId?.toString();
+    const publishBrandId =
+      payload.brandId !== undefined
+        ? payload.brandId || undefined
+        : product.brandId?.toString();
+
+    await assertPublishableProductLinks({
+      status: nextStatus,
+      categoryId: publishCategoryId,
+      brandId: publishBrandId,
+    });
 
     const assignable = { ...payload };
     delete assignable.name;

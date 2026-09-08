@@ -5,14 +5,14 @@ import {
   assignedProductAttributeSlugs,
   mergeProductFormAttributes,
   toProductFormAttribute,
-} from "@/components/catalog/catalog-form-primitives";
+  type ProductFormAttribute,
+} from "@/lib/product-form-attributes";
 import { PageHeader } from "@/components/layout/page-header";
 import {
-  fetchAttributes,
-  fetchBrands,
-  fetchCategories,
-  fetchProductById,
-} from "@platform/api-client";
+  loadProductFormBrandOptions,
+  loadProductFormCategoryOptions,
+} from "@/lib/product-form-options";
+import { fetchAttributes, fetchProductById } from "@platform/api-client";
 import { getAdminSiteConfig } from "@/lib/site";
 
 const site = getAdminSiteConfig();
@@ -35,19 +35,14 @@ export default async function EditProductPage({
     notFound();
   }
 
-  const [categoriesRes, brandsRes, activeAttributesRes, catalogAttributesRes] =
+  const [categories, brands, activeAttributesRes, catalogAttributesRes] =
     await Promise.all([
-      fetchCategories({ limit: 100 }),
-      fetchBrands({ limit: 100 }),
+      loadProductFormCategoryOptions(product.categoryId),
+      loadProductFormBrandOptions(product.brandId),
       fetchAttributes({ limit: 100, status: "published" }),
       fetchAttributes({ limit: 100 }),
     ]);
 
-  const categories = categoriesRes.data.map((c) => ({
-    id: c.id,
-    name: c.name,
-  }));
-  const brands = brandsRes.data.map((b) => ({ id: b.id, name: b.name }));
   const activeAttributes = activeAttributesRes.data.map(toProductFormAttribute);
   const catalogAttributes = catalogAttributesRes.data.map(
     toProductFormAttribute

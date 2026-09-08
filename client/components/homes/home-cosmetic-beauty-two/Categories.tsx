@@ -1,14 +1,34 @@
 import { roundedCategories } from "@/data/categories";
+import {
+  loadPublishedCategories,
+  type StorefrontCategoryItem,
+} from "@/lib/catalog";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Categories({
+function toFallbackCategories(): StorefrontCategoryItem[] {
+  return roundedCategories.map((category, index) => ({
+    id: String(index),
+    name: category.title ?? "Category",
+    image: category.imgSrc ?? "",
+    href: "/shop-by-categories",
+  }));
+}
+
+async function loadCategories(): Promise<StorefrontCategoryItem[]> {
+  const categories = await loadPublishedCategories(12);
+  return categories.length > 0 ? categories : toFallbackCategories();
+}
+
+export default async function Categories({
   removeCircle,
   sectionSpace,
 }: {
   removeCircle?: string;
   sectionSpace?: string;
 }) {
+  const categories = await loadCategories();
+
   return (
     <div
       className={`rbt-component-area rbt-categories-area rbt-bg-color-white ${sectionSpace ? sectionSpace : "rbt-section-gapTop"}`}
@@ -32,37 +52,35 @@ export default function Categories({
             </Link>
           </div>
         </div>
-        {/* Start Card Area */}
         <div className="row row--8 mt_dec--16 align-items-end">
-          {roundedCategories.map((cat, index) => (
+          {categories.map((category, index) => (
             <div
               className="col-lg-2 col-md-4 col-sm-4 col-4 mt--16"
-              key={index}
+              key={category.id}
             >
               <Link
                 className={`rbt-cat-box rbt-cat-box-1 rbt-cat-box-1-rounded text-center rbt-scroll-trigger fade_in animation-order-${index + 1}`}
-                href={`/shop-by-categories`}
+                href={category.href}
               >
                 <div className="inner">
                   <div
                     className={`rbt-image-portion rbt-bg-color-brand-100 rbt-scroll-trigger zoom_in animation-order-${index + 1} ${removeCircle}`}
                   >
                     <Image
-                      alt="Category Product Images"
-                      src={cat.imgSrc || ""}
-                      width={400}
+                      alt={category.name}
                       height={400}
+                      src={category.image}
+                      width={400}
                     />
                   </div>
                   <div className="content">
-                    <h6 className="title">{cat.title}</h6>
+                    <h6 className="title">{category.name}</h6>
                   </div>
                 </div>
               </Link>
             </div>
           ))}
         </div>
-        {/* End Card Area */}
       </div>
     </div>
   );

@@ -23,11 +23,22 @@ import {
   uploadPendingCatalogImageUrls,
   type CatalogImagePreview,
   type PendingCatalogFile,
-  type ProductFormAttribute,
 } from "@/components/catalog/catalog-form-primitives";
+import type { ProductFormAttribute } from "@/lib/product-form-attributes";
+export {
+  assignedProductAttributeSlugs,
+  mergeProductFormAttributes,
+  toProductFormAttribute,
+  type ProductFormAttribute,
+} from "@/lib/product-form-attributes";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
 import { finishCatalogSave } from "@/lib/catalog-feedback";
+import {
+  getPublishLinkError,
+  productFormPickLabel,
+  type ProductFormPickOption,
+} from "@/lib/product-form-options";
 import { useToast } from "@/providers/toast-provider";
 import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import { createProductApi, updateProductApi } from "@platform/api-client";
@@ -44,8 +55,8 @@ type FormState = {
 
 type ProductCatalogFormProps = {
   attributes: ProductFormAttribute[];
-  brands: Array<{ id: string; name: string }>;
-  categories: Array<{ id: string; name: string }>;
+  brands: ProductFormPickOption[];
+  categories: ProductFormPickOption[];
   defaultBrandId?: string;
   defaultCategoryId?: string;
   initial?: ProductDto;
@@ -144,6 +155,26 @@ export function ProductCatalogForm({
     () => getCatalogFieldErrors(formState.error),
     [formState.error]
   );
+  const statusHelp = useMemo(() => {
+    switch (status) {
+      case "published":
+        return "Published products appear in storefront shop and product pages.";
+      case "archived":
+        return "Archived products are kept for reference and order history but hidden from storefront views.";
+      default:
+        return "Draft products are hidden from published storefront views.";
+    }
+  }, [status]);
+  const statusOptions = useMemo(
+    () => [
+      { label: "Draft", value: "draft" },
+      { label: "Published", value: "published" },
+      ...(mode === "edit"
+        ? [{ label: "Archived", value: "archived" as const }]
+        : []),
+    ],
+    [mode]
+  );
   const { disabled } = useCatalogFormLeaveGuard({
     loading: formState.loading,
   });
@@ -162,6 +193,19 @@ export function ProductCatalogForm({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    const publishError = getPublishLinkError(
+      status,
+      categoryId,
+      brandId,
+      categories,
+      brands
+    );
+    if (publishError) {
+      setFormState({ error: publishError, loading: false });
+      return;
+    }
+
     setFormState({ error: null, loading: true });
 
     const attributesPayload = Object.fromEntries(
@@ -275,15 +319,11 @@ export function ProductCatalogForm({
             >
               <ControlledSelect
                 disabled={disabled}
-                help="Draft products are hidden from published storefront views."
+                help={statusHelp}
                 hideLabel
                 label="Status"
                 onChange={(value) => setStatus(value as ProductDto["status"])}
-                options={[
-                  { label: "Draft", value: "draft" },
-                  { label: "Published", value: "published" },
-                  { label: "Archived", value: "archived" },
-                ]}
+                options={statusOptions}
                 value={status}
               />
             </FormCard>
@@ -359,12 +399,13 @@ export function ProductCatalogForm({
             <div className="grid gap-4 sm:grid-cols-2">
               <ControlledSelect
                 disabled={disabled}
+                help="Only published categories are listed. An assigned draft category stays visible on edit."
                 label="Category"
                 onChange={setCategoryId}
                 options={[
                   { label: "None", value: "" },
                   ...categories.map((category) => ({
-                    label: category.name,
+                    label: productFormPickLabel(category),
                     value: category.id,
                   })),
                 ]}
@@ -372,12 +413,13 @@ export function ProductCatalogForm({
               />
               <ControlledSelect
                 disabled={disabled}
+                help="Only published brands are listed. An assigned draft or archived brand stays visible on edit."
                 label="Brand"
                 onChange={setBrandId}
                 options={[
                   { label: "None", value: "" },
                   ...brands.map((brand) => ({
-                    label: brand.name,
+                    label: productFormPickLabel(brand),
                     value: brand.id,
                   })),
                 ]}

@@ -1,6 +1,6 @@
 import { baseURL } from "@/utils/cn";
 
-export type ProductStatus = "draft" | "low stock" | "published";
+export type ProductStatus = "archived" | "draft" | "low stock" | "published";
 
 export type Product = {
   id?: string;

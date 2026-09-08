@@ -138,12 +138,48 @@ export async function requireCategory(
 
 export async function requireBrand(
   brandId: string
-): Promise<{ _id: Types.ObjectId; name: string }> {
+): Promise<{ _id: Types.ObjectId; name: string; status: string }> {
   const brand = await Brand.findById(brandId);
   if (!brand) {
     throw new AppError(404, "Brand not found");
   }
   return brand;
+}
+
+export async function assertPublishableProductLinks(params: {
+  brandId?: string;
+  categoryId?: string;
+  status?: string;
+}): Promise<void> {
+  if (params.status !== "published") {
+    return;
+  }
+
+  if (params.categoryId) {
+    const category = await Category.findById(params.categoryId);
+    if (!category) {
+      throw new AppError(404, "Category not found");
+    }
+    if (category.status !== "published") {
+      throw new AppError(
+        400,
+        `Cannot publish product: category "${category.name}" is not published`
+      );
+    }
+  }
+
+  if (params.brandId) {
+    const brand = await Brand.findById(params.brandId);
+    if (!brand) {
+      throw new AppError(404, "Brand not found");
+    }
+    if (brand.status !== "published") {
+      throw new AppError(
+        400,
+        `Cannot publish product: brand "${brand.name}" is ${brand.status}`
+      );
+    }
+  }
 }
 
 export async function syncProductCategoryNames(

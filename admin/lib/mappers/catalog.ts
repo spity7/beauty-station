@@ -15,7 +15,10 @@ function resolveImage(images: string[]): string {
 }
 
 export function toAdminProductStatus(product: ProductDto): ProductStatus {
-  if (product.status === "draft" || product.status === "archived") {
+  if (product.status === "archived") {
+    return "archived";
+  }
+  if (product.status === "draft") {
     return "draft";
   }
   if (product.stock <= LOW_STOCK_THRESHOLD) {
