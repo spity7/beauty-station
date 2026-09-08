@@ -122,7 +122,7 @@ export function AttributeCatalogForm({
         )}
       >
         <FormCard title="General">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+          <div className="grid gap-4 sm:grid-cols-2">
             <ControlledField
               disabled={disabled}
               error={fieldErrors.name}

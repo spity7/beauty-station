@@ -4,12 +4,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   AssignedProductsSection,
-  BrandTilePreview,
+  BrandTileStylePicker,
   CatalogFormFooter,
-  CatalogFormLayout,
   ControlledField,
   ControlledSelect,
-  deriveInitials,
   getCatalogFieldErrors,
   StatusDot,
   type AssignedProductPreview,
@@ -20,15 +18,14 @@ import { addProductPath, productsListPath } from "@/lib/paths";
 import { finishCatalogSave } from "@/lib/catalog-feedback";
 import { useToast } from "@/providers/toast-provider";
 import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
+import {
+  brandTileClassOptions,
+  DEFAULT_BRAND_TILE_CLASS,
+  normalizeBrandInitials,
+  resolveBrandInitials,
+} from "@/lib/brand-tile";
 import { createBrandApi, updateBrandApi } from "@platform/api-client";
 import type { BrandDto } from "@platform/shared";
-
-const TILE_CLASS_OPTIONS = [
-  { label: "Brand (gold)", value: "bg-brand-50 text-brand-600" },
-  { label: "Success (green)", value: "bg-success-50 text-success-600" },
-  { label: "Warning (amber)", value: "bg-warning-50 text-warning-600" },
-  { label: "Neutral", value: "bg-surface-muted text-ink-600" },
-];
 
 type FormState = {
   error: string | null;
@@ -50,9 +47,11 @@ export function BrandCatalogForm({
   const { showToast } = useToast();
   const [name, setName] = useState(initial?.name ?? "");
   const [website, setWebsite] = useState(initial?.website ?? "");
-  const [initials, setInitials] = useState(initial?.initials ?? "");
+  const [initials, setInitials] = useState(
+    normalizeBrandInitials(initial?.initials ?? "")
+  );
   const [tileClass, setTileClass] = useState(
-    initial?.tileClass ?? TILE_CLASS_OPTIONS[0].value
+    initial?.tileClass ?? DEFAULT_BRAND_TILE_CLASS
   );
   const [visibility, setVisibility] = useState<BrandDto["visibility"]>(
     initial?.visibility ?? "Standard"
@@ -65,12 +64,34 @@ export function BrandCatalogForm({
     loading: false,
   });
 
-  const previewInitials = useMemo(() => {
-    if (initials.trim()) {
-      return initials.trim().slice(0, 4).toUpperCase();
+  const previewInitials = useMemo(
+    () => resolveBrandInitials(initials, name),
+    [initials, name]
+  );
+  const tileClassOptions = useMemo(
+    () => brandTileClassOptions(tileClass),
+    [tileClass]
+  );
+  const statusHelp = useMemo(() => {
+    switch (status) {
+      case "published":
+        return "Published brands can appear in storefront catalog views.";
+      case "archived":
+        return "Archived brands are kept for reference but hidden from storefront views.";
+      default:
+        return "Draft brands are hidden from published storefront views.";
     }
-    return deriveInitials(name);
-  }, [initials, name]);
+  }, [status]);
+  const statusOptions = useMemo(
+    () => [
+      { label: "Draft", value: "draft" },
+      { label: "Published", value: "published" },
+      ...(mode === "edit"
+        ? [{ label: "Archived", value: "archived" as const }]
+        : []),
+    ],
+    [mode]
+  );
 
   const fieldErrors = useMemo(
     () => getCatalogFieldErrors(formState.error),
@@ -89,7 +110,7 @@ export function BrandCatalogForm({
       website,
       status,
       visibility,
-      initials: initials.trim() || undefined,
+      initials: normalizeBrandInitials(initials) || undefined,
       tileClass,
     };
 
@@ -121,39 +142,10 @@ export function BrandCatalogForm({
       className="min-w-0 max-w-full space-y-4"
       onSubmit={handleSubmit}
     >
-      <CatalogFormLayout
-        aside={
-          <>
-            <BrandTilePreview
-              initials={previewInitials}
-              tileClass={tileClass}
-            />
-            <FormCard
-              title="Status"
-              titleEnd={
-                <StatusDot active={status === "published"} variant={status} />
-              }
-            >
-              <ControlledSelect
-                disabled={disabled}
-                help="Draft brands are hidden from published storefront views."
-                hideLabel
-                label="Status"
-                onChange={(value) => setStatus(value as BrandDto["status"])}
-                options={[
-                  { label: "Draft", value: "draft" },
-                  { label: "Published", value: "published" },
-                  { label: "Archived", value: "archived" },
-                ]}
-                value={status}
-              />
-            </FormCard>
-          </>
-        }
-      >
-        <div className="grid items-start gap-4 md:grid-cols-2">
-          <FormCard title="General">
-            <div className="space-y-4">
+      <div className="grid min-w-0 max-w-full items-start gap-4 lg:grid-cols-2">
+        <FormCard title="General">
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <ControlledField
                 disabled={disabled}
                 error={fieldErrors.name}
@@ -166,55 +158,68 @@ export function BrandCatalogForm({
                 required
                 value={name}
               />
-              <div className="grid gap-4 md:grid-cols-2">
-                <ControlledField
-                  disabled={disabled}
-                  help="Shown in brand tiles (max 4 characters)."
-                  label="Initials"
-                  maxLength={4}
-                  onChange={setInitials}
-                  placeholder="e.g. BS"
-                  value={initials}
-                />
-                <ControlledSelect
-                  disabled={disabled}
-                  label="Tile style"
-                  onChange={setTileClass}
-                  options={TILE_CLASS_OPTIONS}
-                  value={tileClass}
-                />
-              </div>
-            </div>
-          </FormCard>
-          <div className="grid items-start gap-4 sm:grid-cols-2 md:grid-cols-1">
-            <FormCard title="Storefront placement">
-              <ControlledSelect
-                disabled={disabled}
-                help="Controls how prominently the brand appears in admin merchandising."
-                label="Visibility"
-                onChange={(value) =>
-                  setVisibility(value as BrandDto["visibility"])
-                }
-                options={[
-                  { label: "Featured", value: "Featured" },
-                  { label: "Standard", value: "Standard" },
-                  { label: "Hidden", value: "Hidden" },
-                ]}
-                value={visibility}
-              />
-            </FormCard>
-            <FormCard title="Brand links">
               <ControlledField
                 disabled={disabled}
-                label="Website"
-                onChange={setWebsite}
-                placeholder="https://example.com"
-                value={website}
+                help="Leave blank to auto-generate from the brand name."
+                label="Initials"
+                maxLength={4}
+                onChange={(value) => setInitials(normalizeBrandInitials(value))}
+                placeholder="e.g. BS"
+                value={initials}
               />
-            </FormCard>
+            </div>
+            <BrandTileStylePicker
+              disabled={disabled}
+              initials={previewInitials}
+              onChange={setTileClass}
+              options={tileClassOptions}
+              value={tileClass}
+            />
           </div>
-        </div>
-      </CatalogFormLayout>
+        </FormCard>
+        <FormCard title="Publishing & links">
+          <div className="space-y-4">
+            <div>
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="text-[13px] font-semibold text-ink-700">
+                  Status
+                </span>
+                <StatusDot active={status === "published"} variant={status} />
+              </div>
+              <ControlledSelect
+                disabled={disabled}
+                help={statusHelp}
+                hideLabel
+                label="Status"
+                onChange={(value) => setStatus(value as BrandDto["status"])}
+                options={statusOptions}
+                value={status}
+              />
+            </div>
+            <ControlledSelect
+              disabled={disabled}
+              help="Controls how prominently the brand appears in admin merchandising."
+              label="Visibility"
+              onChange={(value) =>
+                setVisibility(value as BrandDto["visibility"])
+              }
+              options={[
+                { label: "Featured", value: "Featured" },
+                { label: "Standard", value: "Standard" },
+                { label: "Hidden", value: "Hidden" },
+              ]}
+              value={visibility}
+            />
+            <ControlledField
+              disabled={disabled}
+              label="Website"
+              onChange={setWebsite}
+              placeholder="https://example.com"
+              value={website}
+            />
+          </div>
+        </FormCard>
+      </div>
       {mode === "edit" && initial ? (
         <AssignedProductsSection
           addProductHref={addProductPath({ brandId: initial.id })}

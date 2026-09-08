@@ -4,15 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Icon } from "@/components/layout/icon";
-import { routes } from "@/config/routes";
+import { brandEditPath, categoryEditPath } from "@/lib/paths";
 import { cn } from "@/utils/cn";
 
 type CategoryShowcaseItem = {
+  id: string;
   image: string;
   name: string;
 };
 
 type BrandShowcaseItem = {
+  id: string;
   initials: string;
   name: string;
   tileClass: string;
@@ -96,8 +98,8 @@ export function ShowcaseStrip({ items, type }: ShowcaseStripProps) {
           ? items.map((item) => (
               <Link
                 className="group flex min-w-27.5 flex-col items-center rounded-base px-4 py-4 text-center transition-colors"
-                href={routes.editCategory}
-                key={item.name}
+                href={categoryEditPath(item.id)}
+                key={item.id}
               >
                 <Image
                   alt={item.name}
@@ -114,8 +116,8 @@ export function ShowcaseStrip({ items, type }: ShowcaseStripProps) {
           : items.map((item) => (
               <Link
                 className="group flex min-w-27.5 flex-col items-center rounded-base px-4 py-4 text-center transition-colors"
-                href={routes.editBrand}
-                key={item.name}
+                href={brandEditPath(item.id)}
+                key={item.id}
               >
                 <span
                   className={cn(

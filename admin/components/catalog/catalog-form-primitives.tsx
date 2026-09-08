@@ -510,18 +510,21 @@ export function StatusDot({
   active: boolean;
   variant?: "published" | "draft" | "archived";
 }) {
+  const resolvedVariant =
+    variant === "archived" || variant === "draft" || variant === "published"
+      ? variant
+      : active
+        ? "published"
+        : "draft";
+
   return (
     <span
       aria-hidden
       className={cn(
         "h-2.5 w-2.5 rounded-full",
-        !active && "bg-warning-500",
-        active &&
-          (variant === "archived"
-            ? "bg-surface-muted"
-            : variant === "draft"
-              ? "bg-warning-500"
-              : "bg-success-500")
+        resolvedVariant === "published" && "bg-success-500",
+        resolvedVariant === "draft" && "bg-warning-500",
+        resolvedVariant === "archived" && "bg-surface-muted"
       )}
     />
   );
@@ -799,29 +802,73 @@ export function ThumbnailUploadCard({
   );
 }
 
-export function BrandTilePreview({
+export function BrandTileStylePicker({
+  disabled = false,
   initials,
-  tileClass,
+  onChange,
+  options,
+  value,
 }: {
+  disabled?: boolean;
   initials: string;
-  tileClass: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; shortLabel?: string; value: string }>;
+  value: string;
 }) {
+  const preview = initials.trim() || "?";
+
   return (
-    <FormCard title="Brand tile">
-      <div className="flex flex-col items-center text-center">
-        <span
-          className={cn(
-            "grid h-36 w-36 place-items-center rounded-base text-[28px] font-semibold shadow-soft",
-            tileClass
-          )}
-        >
-          {initials || "?"}
-        </span>
-        <p className="mt-4 text-[12px] text-ink-400">
-          Preview of how this brand appears in admin lists.
-        </p>
+    <fieldset className="block min-w-0" disabled={disabled}>
+      <legend className="text-[13px] font-semibold text-ink-700">
+        Tile style
+      </legend>
+      <div className="mt-1.5 grid grid-cols-4 gap-2" role="radiogroup">
+        {options.map((option) => {
+          const selected = value === option.value;
+          const caption = option.shortLabel ?? option.label;
+
+          return (
+            <button
+              aria-checked={selected}
+              aria-label={option.label}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-base border p-2 transition-shadow",
+                selected
+                  ? "border-brand-600 bg-brand-50/40 ring-2 ring-brand-200"
+                  : "border-surface-line hover:border-brand-300 hover:bg-surface-muted/40",
+                disabled && "cursor-not-allowed opacity-60"
+              )}
+              disabled={disabled}
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              role="radio"
+              title={option.label}
+              type="button"
+            >
+              <span
+                className={cn(
+                  "grid h-12 w-12 place-items-center rounded-base text-[14px] font-semibold",
+                  option.value
+                )}
+              >
+                {preview}
+              </span>
+              <span
+                className={cn(
+                  "text-[11px] font-medium leading-none",
+                  selected ? "text-brand-700" : "text-ink-500"
+                )}
+              >
+                {caption}
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </FormCard>
+      <p className="mt-2 text-[12px] text-ink-400">
+        Preview uses your initials — same tile size as admin lists.
+      </p>
+    </fieldset>
   );
 }
 
@@ -1248,16 +1295,7 @@ export function CatalogFormLayout({
   );
 }
 
-export function deriveInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "";
-  }
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
-}
+export { deriveInitials } from "@/lib/brand-tile";
 
 export function createAttributeValueRows(
   values: string[]

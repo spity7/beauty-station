@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Brand tile style classes are stored in DB and applied dynamically. */
+@source inline("bg-brand-50 text-brand-600 bg-success-50 text-success-600 bg-success-100 text-success-700 bg-warning-50 text-warning-600 bg-warning-100 text-warning-600 bg-accent-50 text-accent-700 bg-accent-100 text-accent-600 bg-danger-50 text-danger-500 bg-danger-100 text-danger-600 text-admin-teal bg-surface-muted text-ink-600 bg-ink-800 text-white");
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

@@ -13,6 +13,14 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toBrandDto } from "../utils/serializers.js";
 import { getInitials, slugify } from "../utils/strings.js";
 
+function normalizeInitials(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const normalized = value.trim().toUpperCase().slice(0, 4);
+  return normalized || undefined;
+}
+
 export const brandsRouter = Router();
 
 brandsRouter.get(
@@ -62,7 +70,8 @@ brandsRouter.post(
   asyncHandler(async (req, res) => {
     const payload = createBrandSchema.parse(req.body);
     const slug = slugify(payload.name);
-    const initials = payload.initials ?? getInitials(payload.name);
+    const initials =
+      normalizeInitials(payload.initials) ?? getInitials(payload.name);
 
     try {
       const brand = await Brand.create({
@@ -100,7 +109,7 @@ brandsRouter.patch(
     if (payload.name) {
       brand.name = payload.name;
       brand.slug = slugify(payload.name);
-      if (!payload.initials) {
+      if (!normalizeInitials(payload.initials)) {
         brand.initials = getInitials(payload.name);
       }
     }
@@ -108,7 +117,8 @@ brandsRouter.patch(
       brand.website = payload.website;
     }
     if (payload.initials !== undefined) {
-      brand.initials = payload.initials;
+      brand.initials =
+        normalizeInitials(payload.initials) ?? getInitials(brand.name);
     }
     if (payload.tileClass !== undefined) {
       brand.tileClass = payload.tileClass;
