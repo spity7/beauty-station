@@ -84,7 +84,7 @@ export function ListClearFiltersButton({
   return (
     <button
       aria-label="Clear all filters"
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-base border border-surface-line bg-surface-card text-ink-600 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-base border border-danger-200 bg-danger-50 text-danger-600 transition-colors hover:border-danger-300 hover:bg-danger-100 hover:text-danger-700"
       onClick={onClear}
       title="Clear all filters"
       type="button"

@@ -5,11 +5,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ProductListTable } from "@/components/products/product-list-table";
 import { routes } from "@/config/routes";
 import type { Product } from "@/data/products/data";
+import { fetchAdminProducts } from "@/lib/authenticated-catalog";
 import {
   fetchAttributes,
   fetchBrands,
   fetchCategories,
-  fetchProducts,
 } from "@platform/api-client";
 import {
   mapBrandDto,
@@ -47,7 +47,7 @@ export default async function ProductsPage({
       brandsResponse,
       attributesResponse,
     ] = await Promise.all([
-      fetchProducts({ limit: 100 }),
+      fetchAdminProducts({ limit: 100, page: 1 }),
       fetchCategories({ limit: 100 }),
       fetchBrands({ limit: 100 }),
       fetchAttributes({ limit: 100 }),

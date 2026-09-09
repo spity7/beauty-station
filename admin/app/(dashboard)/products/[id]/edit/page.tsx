@@ -12,7 +12,8 @@ import {
   loadProductFormBrandOptions,
   loadProductFormCategoryOptions,
 } from "@/lib/product-form-options";
-import { fetchAttributes, fetchProductById } from "@platform/api-client";
+import { fetchAdminProductById } from "@/lib/authenticated-catalog";
+import { fetchAttributes } from "@platform/api-client";
 import { getAdminSiteConfig } from "@/lib/site";
 
 const site = getAdminSiteConfig();
@@ -30,7 +31,7 @@ export default async function EditProductPage({
 
   let product;
   try {
-    product = await fetchProductById(id);
+    product = await fetchAdminProductById(id);
   } catch {
     notFound();
   }

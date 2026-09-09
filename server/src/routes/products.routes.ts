@@ -1,11 +1,16 @@
 import { Router } from "express";
 import {
   createProductSchema,
-  listQuerySchema,
+  productListQuerySchema,
   updateProductSchema,
 } from "@platform/shared";
 import { AppError } from "../middleware/errorHandler.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import {
+  optionalAuth,
+  requireAuth,
+  requireAdmin,
+  type AuthenticatedRequest,
+} from "../middleware/auth.js";
 import { Category } from "../models/Category.js";
 import { Brand } from "../models/Brand.js";
 import { Product } from "../models/Product.js";
@@ -25,6 +30,11 @@ import {
   collectRemovedManagedCatalogImages,
   deleteManagedCatalogImagesIfPresent,
 } from "../services/managed-catalog-storage.js";
+import { buildProductListFilter } from "../utils/product-list-filter.js";
+
+function isAdminRequest(req: AuthenticatedRequest): boolean {
+  return req.auth?.role === "admin";
+}
 
 export const productsRouter = Router();
 
@@ -44,17 +54,10 @@ productsRouter.get(
 
 productsRouter.get(
   "/",
-  asyncHandler(async (req, res) => {
-    const query = listQuerySchema.parse(req.query);
-    const filter: Record<string, unknown> = {};
-
-    if (query.status) {
-      filter.status = query.status;
-    }
-
-    if (query.search) {
-      filter.$text = { $search: query.search };
-    }
+  optionalAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const query = productListQuerySchema.parse(req.query);
+    const filter = buildProductListFilter(query, isAdminRequest(req));
 
     const skip = (query.page - 1) * query.limit;
 
@@ -77,9 +80,13 @@ productsRouter.get(
 
 productsRouter.get(
   "/:id",
-  asyncHandler(async (req, res) => {
+  optionalAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) {
+      throw new AppError(404, "Product not found");
+    }
+    if (!isAdminRequest(req) && product.status !== "published") {
       throw new AppError(404, "Product not found");
     }
     res.json(toProductDto(product));

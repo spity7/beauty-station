@@ -432,6 +432,20 @@ export interface ListQuery {
   search?: string;
 }
 
+export interface ProductListQuery {
+  /** @minimum 1 */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  status?: string;
+  search?: string;
+  categoryId?: string;
+  brandId?: string;
+}
+
 export type PaginatedProductsDataItemStatus =
   (typeof PaginatedProductsDataItemStatus)[keyof typeof PaginatedProductsDataItemStatus];
 
@@ -1184,6 +1198,8 @@ export type ListProductParams = {
   limit?: number;
   status?: string;
   search?: string;
+  categoryId?: string;
+  brandId?: string;
 };
 
 export type ListProduct200DataItemStatus =

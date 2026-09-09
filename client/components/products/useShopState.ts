@@ -9,24 +9,32 @@ type LoaderType = "pagination" | "button";
 
 type UseShopStateOptions = {
   column: number;
+  defaultBrands?: string[];
+  defaultCategories?: string[];
   loaderType?: LoaderType | string;
   defaultTags?: string[];
   itemPerPage?: number;
   products?: Product[];
+  serverPagination?: boolean;
 };
 
 export function useShopState({
   column,
+  defaultBrands = [],
+  defaultCategories = [],
   loaderType = "pagination",
   defaultTags = [],
   itemPerPage = 0,
   products,
+  serverPagination = false,
 }: UseShopStateOptions) {
   const sourceProducts = (
     products && products.length ? products : electronicsCardData
   ) as Product[];
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
+    brands: defaultBrands,
+    categories: defaultCategories,
     filtered: sourceProducts,
     sorted: sourceProducts,
     itemPerPage: itemPerPage
@@ -60,6 +68,9 @@ export function useShopState({
   const isLoadMore = loaderType === "button";
 
   const visibleProducts = useMemo(() => {
+    if (serverPagination) {
+      return state.sorted;
+    }
     if (isLoadMore) {
       return state.sorted.slice(0, state.currentPage * state.itemPerPage);
     }
@@ -67,7 +78,13 @@ export function useShopState({
       (state.currentPage - 1) * state.itemPerPage,
       state.currentPage * state.itemPerPage
     );
-  }, [state.sorted, state.currentPage, state.itemPerPage, isLoadMore]);
+  }, [
+    isLoadMore,
+    serverPagination,
+    state.currentPage,
+    state.itemPerPage,
+    state.sorted,
+  ]);
 
   function getFilterCount(filterFunction: (product: Product) => boolean) {
     return sourceProducts.filter((product) => filterFunction(product)).length;

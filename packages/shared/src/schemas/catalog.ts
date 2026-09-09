@@ -104,3 +104,10 @@ export const listQuerySchema = z.object({
   status: z.string().optional(),
   search: z.string().optional(),
 });
+
+export const productListQuerySchema = listQuerySchema.extend({
+  categoryId: z.string().optional(),
+  brandId: z.string().optional(),
+});
+
+export type ProductListQuery = z.infer<typeof productListQuerySchema>;

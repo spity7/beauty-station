@@ -16,11 +16,15 @@ import FilterByBrand from "./filterComponents/FilterByBrand";
 import FilterByService from "./filterComponents/FilterByService";
 import { FilterState, FilterAction } from "@/types";
 import { Product } from "@/types";
+import type { ShopCatalogFilters } from "@/types/shop-catalog";
+
 export default function Sidebar({
+  catalogFilters,
   state,
   dispatch,
   getFilterCount,
 }: {
+  catalogFilters?: ShopCatalogFilters;
   state: FilterState;
   dispatch: Dispatch<FilterAction>;
   getFilterCount: (fn: (product: Product) => boolean) => number;
@@ -47,6 +51,7 @@ export default function Sidebar({
           <div className="collapse show" id="rbt-collapse-3">
             <ul className="rbt-sidebar-list-wrapper rbt-categories-list-check">
               <FilterByCategories
+                categories={catalogFilters?.categories}
                 selectedItems={state.categories}
                 getFilterCount={getFilterCount}
                 onChange={(value) =>
@@ -174,6 +179,7 @@ export default function Sidebar({
           <div className="collapse show" id="rbt-collapse-9">
             <ul className="rbt-sidebar-list-wrapper rbt-categories-list-check rbt-categories-brand-list-check">
               <FilterByBrand
+                brands={catalogFilters?.brands}
                 getFilterCount={getFilterCount}
                 selectedItems={state.brands}
                 onChange={(value) => toggleBrand(value, dispatch, state.brands)}

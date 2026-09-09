@@ -1,12 +1,14 @@
 import { baseURL } from "@/utils/cn";
 
-export type ProductStatus = "archived" | "draft" | "low stock" | "published";
+export type CatalogStatus = "archived" | "draft" | "published";
+export type ProductStatus = CatalogStatus | "low stock";
 
 export type Product = {
   id?: string;
   attributeSlugs?: string[];
   brand?: string;
   brandId?: string;
+  catalogStatus?: CatalogStatus;
   category: string;
   categoryId?: string;
   image: string;

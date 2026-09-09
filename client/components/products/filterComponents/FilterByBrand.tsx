@@ -1,97 +1,111 @@
 "use client";
-import Image from "next/image";
 
-const brands = [
+import Image from "next/image";
+import type { Product } from "@/types";
+import type { ShopBrandFilterOption } from "@/types/shop-catalog";
+
+const fallbackBrands: ShopBrandFilterOption[] = [
   {
-    id: 1,
+    id: "1",
     name: "Acme",
-    count: 96,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-01.webp",
+    initials: "AC",
+    tileClass: "bg-brand-50 text-brand-600",
   },
   {
-    id: 2,
+    id: "2",
     name: "Aurarts",
-    count: 12,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-02.webp",
+    initials: "AU",
+    tileClass: "bg-success-50 text-success-600",
   },
   {
-    id: 3,
+    id: "3",
     name: "Hamofy",
-    count: 67,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-03.webp",
+    initials: "HA",
+    tileClass: "bg-warning-50 text-warning-600",
   },
   {
-    id: 4,
+    id: "4",
     name: "Starwalks",
-    count: 30,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-04.webp",
+    initials: "ST",
+    tileClass: "bg-accent-50 text-accent-700",
   },
   {
-    id: 5,
+    id: "5",
     name: "Massive",
-    count: 89,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-05.webp",
+    initials: "MA",
+    tileClass: "bg-danger-50 text-danger-500",
   },
   {
-    id: 6,
+    id: "6",
     name: "Superga",
-    count: 60,
-    image: "/assets/images/sidebar/catagory-brand/catagory-brand-img-06.webp",
+    initials: "SU",
+    tileClass: "bg-surface-muted text-ink-600",
   },
 ];
 
-import { Product } from "@/types";
-
 export default function FilterByBrand({
+  brands = fallbackBrands,
   selectedItems,
   onChange,
   getFilterCount,
 }: {
+  brands?: ShopBrandFilterOption[];
   selectedItems: string[];
   onChange: (value: string) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
-  const handleToggle = (name: string) => {
-    onChange(name);
-  };
+  const items = brands.length > 0 ? brands : fallbackBrands;
 
   return (
     <>
-      {brands.map((brand) => {
+      {items.map((brand) => {
         const isActive = selectedItems.includes(brand.name);
         const inputId = `brand-checkbox-${brand.id}`;
 
         return (
           <li
-            key={brand.id}
             className={`rbt-check-group ${isActive ? "active" : ""}`}
+            key={brand.id}
           >
             <input
-              id={inputId}
-              type="checkbox"
-              name="brand"
               checked={isActive}
-              onChange={() => handleToggle(brand.name)}
+              id={inputId}
+              name="brand"
+              onChange={() => onChange(brand.name)}
+              type="checkbox"
             />
             <label htmlFor={inputId}>
               <span className="rbt-label-content">
                 <span className="rbt-label-img">
-                  <Image
-                    src={brand.image}
-                    alt={`${brand.name} logo`}
-                    width={48}
-                    height={49}
-                    loading="lazy"
-                  />
+                  {brand.initials ? (
+                    <span
+                      className={`d-inline-flex align-items-center justify-content-center rounded-circle text-uppercase fw-semibold ${brand.tileClass ?? "bg-surface-muted text-ink-600"}`}
+                      style={{ height: 48, width: 48, fontSize: 12 }}
+                    >
+                      {brand.initials}
+                    </span>
+                  ) : (
+                    <Image
+                      alt={`${brand.name} logo`}
+                      height={49}
+                      loading="lazy"
+                      src="/assets/images/sidebar/catagory-brand/catagory-brand-img-01.webp"
+                      width={48}
+                    />
+                  )}
                 </span>
                 <span className="rbt-label-text">{brand.name}</span>
               </span>
               <span className="rbt-label-count">
                 (
-                {getFilterCount(
-                  (product) =>
-                    !!(product.filterBrands?.includes(brand.name) ?? false)
-                )}
+                {brand.productCount ??
+                  getFilterCount(
+                    (product) =>
+                      !!(
+                        product.filterBrands?.includes(brand.name) ||
+                        product.brandId === brand.id
+                      )
+                  )}
                 )
               </span>
             </label>

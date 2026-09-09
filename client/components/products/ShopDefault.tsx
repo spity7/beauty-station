@@ -15,6 +15,7 @@ import ProductCard8 from "../product-cards/ProductCard8";
 import FilterByTag from "./filterComponents/FilterByTag";
 import DropdownSelect from "../common/select/DropdownSelect";
 import ShopPagination from "./ShopPagination";
+import ShopServerPagination from "./ShopServerPagination";
 import FilterMeta from "./FilterMeta";
 import Sidebar from "./Sidebar";
 import LayoutHandler from "./LayoutHandler";
@@ -22,6 +23,11 @@ import SidebarScrollable from "./SidebarScrollable";
 import { Product } from "@/types/product";
 
 import { useShopState } from "./useShopState";
+import type {
+  ShopCatalogFilters,
+  ShopCatalogPagination,
+  ShopInitialFilters,
+} from "@/types/shop-catalog";
 import ProductCard16 from "../product-cards/ProductCard16";
 import ProductCard1 from "../product-cards/ProductCard1";
 import ProductCard10 from "../product-cards/ProductCard10";
@@ -57,9 +63,12 @@ export default function ShopDefault({
   countdownStyle = "default",
   showQuantityBadge = false,
   cardVariant = "default",
+  catalogFilters,
+  catalogPagination,
   products,
   hasCardBorder = false,
   detailsPageUrl = "/product-single-default",
+  initialFilters,
 }: {
   rightSidebar?: boolean;
   stickyTop?: boolean;
@@ -74,17 +83,23 @@ export default function ShopDefault({
   countdownStyle?: "default" | "compact";
   showQuantityBadge?: boolean;
   cardVariant?: CardVariant;
+  catalogFilters?: ShopCatalogFilters;
+  catalogPagination?: ShopCatalogPagination;
   products?: Product[];
   hasCardBorder?: boolean;
   detailsPageUrl?: string;
+  initialFilters?: ShopInitialFilters;
 }) {
   const { state, dispatch, visibleProducts, getFilterCount, isLoadMore } =
     useShopState({
       column,
+      defaultBrands: initialFilters?.brandNames ?? [],
+      defaultCategories: initialFilters?.categoryNames ?? [],
       loaderType,
       defaultTags: defaultFilterTag,
-      itemPerPage,
+      itemPerPage: catalogPagination?.limit ?? itemPerPage,
       products,
+      serverPagination: Boolean(catalogPagination),
     });
   const columnClass = useMemo(() => {
     if (column <= 4) {
@@ -114,13 +129,20 @@ export default function ShopDefault({
   }, [wider]);
 
   const hasNoFilteredItems = state.sorted.length === 0;
-  const hasMultiplePages = state.sorted.length > state.itemPerPage;
+  const hasMultiplePages = catalogPagination
+    ? catalogPagination.total > catalogPagination.limit
+    : state.sorted.length > state.itemPerPage;
+  const resultTotal = catalogPagination?.total ?? state.sorted.length;
   const fromResult = hasNoFilteredItems
     ? 0
-    : (state.currentPage - 1) * state.itemPerPage + 1;
+    : catalogPagination
+      ? (catalogPagination.page - 1) * catalogPagination.limit + 1
+      : (state.currentPage - 1) * state.itemPerPage + 1;
   const toResult = hasNoFilteredItems
     ? 0
-    : Math.min(state.currentPage * state.itemPerPage, state.sorted.length);
+    : catalogPagination
+      ? Math.min(catalogPagination.page * catalogPagination.limit, resultTotal)
+      : Math.min(state.currentPage * state.itemPerPage, state.sorted.length);
 
   const ProductCardComponent = useMemo(() => {
     switch (cardVariant) {
@@ -177,12 +199,14 @@ export default function ShopDefault({
                 </div>
                 {sidebarScrollAble ? (
                   <SidebarScrollable
+                    catalogFilters={catalogFilters}
                     getFilterCount={getFilterCount}
                     state={state}
                     dispatch={dispatch}
                   />
                 ) : (
                   <Sidebar
+                    catalogFilters={catalogFilters}
                     getFilterCount={getFilterCount}
                     state={state}
                     dispatch={dispatch}
@@ -328,8 +352,9 @@ export default function ShopDefault({
             {/* End Card Area */}
             <div className="row mt--40 mt_sm--16">
               <div className="col-12">
-                {hasNoFilteredItems ||
-                !hasMultiplePages ? null : !isLoadMore ? (
+                {hasNoFilteredItems ? null : catalogPagination ? (
+                  <ShopServerPagination {...catalogPagination} />
+                ) : !hasMultiplePages ? null : !isLoadMore ? (
                   <ShopPagination
                     key={state.itemPerPage}
                     state={state}

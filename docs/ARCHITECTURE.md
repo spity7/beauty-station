@@ -217,7 +217,9 @@ See [ROUTES.md](ROUTES.md) for the full table. Summary:
 - `GET /api/cart` refreshes line snapshots and prunes unavailable products; guest cart merge runs on login/registration and when an authenticated session is restored (`POST /api/cart/merge`); guest cart rows are deleted after merge
 - `GET /api/health`
 
-Catalog **GET** routes are public. Catalog **POST/PATCH/DELETE** and **uploads** require admin JWT (`bearerAuth` in OpenAPI).
+Catalog **GET** routes are public (no auth). Catalog **POST/PATCH/DELETE** and **uploads** require admin JWT (`bearerAuth` in OpenAPI).
+
+**Deploy note:** Public catalog reads are intentional for the storefront (`/shop`, `/product/[slug]`). Anonymous `GET /api/products` and `GET /api/products/:id` return **published** products only; admin JWT can list/fetch draft and archived. Rate-limit anonymous list endpoints if needed before production.
 
 ## Database
 
@@ -235,6 +237,8 @@ Site-specific modules are defined in site config (`features.*`). Admin navigatio
 - Large theme demo: 80+ home layouts, many shop/product variants under `client/app/`.
 - `HomeLayoutRenderer` maps each `HomeLayoutId` to a dedicated layout under `client/components/site/home-layouts/`.
 - Production chrome on `/shop` and `/product/[slug]` uses `SiteConfig.branding` + `contact` in `Header13` / `Footer7`.
+- `/shop` accepts `?categoryId=`, `?brandId=`, and `?page=` query params; product list is fetched server-side from `GET /api/products` (published-only for anonymous callers). Sidebar filters load published categories/brands from the API (`fetchPublishedCategories`, `fetchStorefrontBrands`) with `productCount` badges.
+- `/product/[slug]` shows an unavailable page for draft/archived slugs (API **404**); static demo catalog is not used as a fallback for missing API products.
 - Cart, wishlist, compare: Zustand in `client/context/store.ts`. Cart and compare persist in localStorage; when `features.customerAuth` + `features.wishlist` are enabled, wishlist syncs to `/api/wishlist` (server is source of truth; not persisted locally). See [ROUTES.md](ROUTES.md) § storefront wishlist notes.
 - Tab-driven product sections: follow `client/.cursor/rules/product-tab-filtering-pattern.mdc`.
 
@@ -242,7 +246,7 @@ Site-specific modules are defined in site config (`features.*`). Admin navigatio
 
 - Tailwind 4 + Biome lint + Prettier.
 - Optional `basePath` from `NEXT_PUBLIC_BASE_URL` in `admin/next.config.ts`.
-- Catalog list + CRUD pages use `@platform/api-client`. Production forms in `components/catalog/*-catalog-form.tsx` (shared UI in `catalog-form-primitives.tsx`); slugs are server-generated. Product form includes published-attribute picker. Nav items with `feature` keys respect `SiteConfig.features`.
+- Catalog list + CRUD pages use `@platform/api-client`. Production forms in `components/catalog/*-catalog-form.tsx` (shared UI in `catalog-form-primitives.tsx`); slugs are server-generated. Product form includes published-attribute picker and publish guards for linked category/brand status. Legacy `*/demo/edit` routes show a demo notice with links to live CRUD. Nav items with `feature` keys respect `SiteConfig.features`.
 
 ## Tooling
 

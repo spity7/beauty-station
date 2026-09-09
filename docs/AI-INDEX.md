@@ -40,7 +40,7 @@ ecommerce-platform/
 
 | Document                                                                         | Purpose                                                   | Last reviewed |
 | -------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------- |
-| [ARCHITECTURE.md](ARCHITECTURE.md)                                               | Monorepo layout, multi-site, OpenAPI/Orval, CI, new sites | 2026-09-06    |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                                               | Monorepo layout, multi-site, OpenAPI/Orval, CI, new sites | 2026-09-08    |
 | [ROUTES.md](ROUTES.md)                                                           | HTTP API + admin/storefront route inventory               | 2026-09-08    |
 | [CONVENTIONS.md](CONVENTIONS.md)                                                 | Naming, UI stacks, patterns per workspace                 | 2026-09-08    |
 | [../admin/README.md](../admin/README.md)                                         | Admin workspace scope + API integration                   | 2026-09-05    |

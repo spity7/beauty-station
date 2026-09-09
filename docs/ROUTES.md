@@ -9,10 +9,10 @@ Base URL: `http://localhost:5000` (override with `API_URL`).
 | Method | Path                                         | Tag        | Notes                                                                                                                                                                                              |
 | ------ | -------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/health`                                | health     | Liveness                                                                                                                                                                                           |
-| GET    | `/api/products`                              | products   | Paginated list (`listProduct`)                                                                                                                                                                     |
+| GET    | `/api/products`                              | products   | Paginated list (`listProduct`); anonymous callers receive **published only**; admin JWT may list all statuses; query `categoryId`, `brandId`, `page`, `limit`, `search`, `status` (admin)          |
 | GET    | `/api/products/slug/:slug`                   | products   | Get by URL slug (published products only; 404 for draft/archived)                                                                                                                                  |
 | POST   | `/api/products`                              | products   | Create (validates category/brand IDs; rejects `status=published` when linked category/brand is not published; attribute keys/values; slug auto-derived from name; SKU auto-generated when omitted) |
-| GET    | `/api/products/:id`                          | products   | Get by ID                                                                                                                                                                                          |
+| GET    | `/api/products/:id`                          | products   | Get by ID (published only for anonymous; admin JWT may fetch draft/archived)                                                                                                                       |
 | PATCH  | `/api/products/:id`                          | products   | Update (validates FKs/attributes; rejects publish when linked category/brand is not published; maintains usage counts; slug auto-derived when name changes)                                        |
 | DELETE | `/api/products/:id`                          | products   | Delete                                                                                                                                                                                             |
 | GET    | `/api/categories`                            | categories | Paginated list                                                                                                                                                                                     |
@@ -136,15 +136,15 @@ Dev URL: `http://localhost:3000`.
 
 ### Production entry
 
-| Path                          | Notes                                                                                                     |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `/`                           | Renders site `homeLayout` via `HomeLayoutRenderer` (Beauty Station → `cosmetic-beauty-two`)               |
-| `/shop`                       | Published products from API with static fallback (`ShopDefault`)                                          |
-| `/product/[slug]`             | Product detail from API by slug with static fallback                                                      |
-| `/checkout`                   | Production checkout (shipping form + place order) when `features.customerAuth`                            |
-| `/checkout-thankyou?orderId=` | Order confirmation from `GET /api/orders/:id` when `features.customerAuth` and `orderId` query is present |
+| Path                          | Notes                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/`                           | Renders site `homeLayout` via `HomeLayoutRenderer` (Beauty Station → `cosmetic-beauty-two`)                                                                  |
+| `/shop`                       | Published products from API (server-side `categoryId`/`brandId`/`page` query); static fallback when API empty; sidebar filter counts from API `productCount` |
+| `/product/[slug]`             | Published product detail from API; unavailable page for draft/archived; **404** when API unreachable                                                         |
+| `/checkout`                   | Production checkout (shipping form + place order) when `features.customerAuth`                                                                               |
+| `/checkout-thankyou?orderId=` | Order confirmation from `GET /api/orders/:id` when `features.customerAuth` and `orderId` query is present                                                    |
 
-**API integration today:** Home `Products1`, `/shop`, and `/product/[slug]` fetch published products from the API with static fallback. Home and shop category strips load published categories from the API with static fallback. Demo routes under `(shop)/` and `(product-single)/` remain for theme previews.
+**API integration today:** Home `Products1`, `/shop`, and `/product/[slug]` fetch published products from the API. `/shop` passes `categoryId`, `brandId`, and `page` to `GET /api/products` (15 items per page; URL-driven pagination). Sidebar filters use published categories and storefront-visible brands from the API with `productCount` badges (static fallback when the API is empty or unavailable). Draft/archived product slugs show an unavailable page instead of demo catalog fallback. Demo routes under `(shop)/` and `(product-single)/` remain for theme previews.
 
 **Wishlist:** Canonical full page is `/my-wishlist` (account layout, API sync). Header heart icons open the wishlist modal (quick preview); modal links to the full page. Legacy `/wishlist` redirects to `/my-wishlist`. Wishlist and cart are independent — adding to cart does not remove favorites.
 

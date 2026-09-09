@@ -33,6 +33,7 @@ export function mapProductDto(product: ProductDto): Product & { id: string } {
     attributeSlugs: Object.keys(product.attributes ?? {}),
     brand: product.brandName,
     brandId: product.brandId,
+    catalogStatus: product.status,
     category: product.categoryName || "Uncategorized",
     categoryId: product.categoryId,
     image: resolveImage(product.images),

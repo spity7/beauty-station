@@ -149,7 +149,11 @@ export function ProductListTable({
         `${product.name} ${product.sku} ${product.category} ${product.brand ?? ""}`
           .toLowerCase()
           .includes(normalizedQuery);
-      const matchesStatus = status === "all" || product.status === status;
+      const matchesStatus =
+        status === "all" ||
+        (status === "low stock"
+          ? product.status === "low stock"
+          : product.catalogStatus === status);
       const matchesCategory =
         categoryId === "all" || product.categoryId === categoryId;
       const matchesBrand = brandId === "all" || product.brandId === brandId;

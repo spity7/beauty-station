@@ -1,58 +1,61 @@
 "use client";
 
-const categories = [
-  { id: 1, name: "Accessories", count: 96 },
-  { id: 2, name: "Best seller", count: 12 },
-  { id: 3, name: "Computers & Tablets", count: 67 },
-  { id: 4, name: "Home Audio & Theatre", count: 30 },
-  { id: 5, name: "Home Theatre Accessories", count: 89 },
-  { id: 6, name: "Media Streamers", count: 37 },
+import type { Product } from "@/types";
+import type { ShopCategoryFilterOption } from "@/types/shop-catalog";
+
+const fallbackCategories: ShopCategoryFilterOption[] = [
+  { id: "1", name: "Accessories" },
+  { id: "2", name: "Best seller" },
+  { id: "3", name: "Computers & Tablets" },
+  { id: "4", name: "Home Audio & Theatre" },
+  { id: "5", name: "Home Theatre Accessories" },
+  { id: "6", name: "Media Streamers" },
 ];
 
-import { Product } from "@/types";
-
 export default function FilterByCategories({
+  categories = fallbackCategories,
   selectedItems,
   onChange,
   getFilterCount,
 }: {
+  categories?: ShopCategoryFilterOption[];
   selectedItems: string[];
   onChange: (value: string) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
-  const handleToggle = (name: string) => {
-    onChange(name);
-  };
+  const items = categories.length > 0 ? categories : fallbackCategories;
 
   return (
     <>
-      {categories.map((category) => {
+      {items.map((category) => {
         const isChecked = selectedItems.includes(category.name);
         const inputId = `category-checkbox-${category.id}`;
 
         return (
           <li
-            key={category.id}
             className={`rbt-check-group ${isChecked ? "active" : ""}`}
+            key={category.id}
           >
             <input
-              id={inputId}
-              type="checkbox"
-              name="category"
               checked={isChecked}
-              onChange={() => handleToggle(category.name)}
+              id={inputId}
+              name="category"
+              onChange={() => onChange(category.name)}
+              type="checkbox"
             />
             <label htmlFor={inputId}>
               <span className="rbt-label-content">
                 <span className="rbt-label-text">{category.name}</span>
                 <span className="rbt-label-count">
                   (
-                  {getFilterCount(
-                    (product) =>
-                      !!(
-                        product.filterCategory?.includes(category.name) ?? false
-                      )
-                  )}
+                  {category.productCount ??
+                    getFilterCount(
+                      (product) =>
+                        !!(
+                          product.filterCategory?.includes(category.name) ||
+                          product.categoryId === category.id
+                        )
+                    )}
                   )
                 </span>
               </span>

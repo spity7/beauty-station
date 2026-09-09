@@ -1,6 +1,7 @@
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
+import { Product } from "../src/models/Product.js";
 import {
   authHeader,
   createTestApp,
@@ -75,6 +76,138 @@ describe("catalog API", () => {
     const draft = await seedDraftProduct();
 
     await request(app).get(`/api/products/slug/${draft.slug}`).expect(404);
+  });
+
+  it("supports storefront catalog visibility for published products", async () => {
+    const product = await seedPublishedProduct();
+
+    const listResponse = await request(app)
+      .get("/api/products")
+      .query({ limit: 50 })
+      .expect(200);
+
+    assert.ok(
+      listResponse.body.data.some(
+        (item: { id: string }) => item.id === product._id.toString()
+      )
+    );
+    assert.ok(
+      listResponse.body.data.every(
+        (item: { status: string }) => item.status === "published"
+      )
+    );
+
+    const slugResponse = await request(app)
+      .get(`/api/products/slug/${product.slug}`)
+      .expect(200);
+
+    assert.equal(slugResponse.body.id, product._id.toString());
+    assert.equal(slugResponse.body.status, "published");
+  });
+
+  it("hides draft and archived products from anonymous list and get-by-id", async () => {
+    const published = await seedPublishedProduct();
+    const draft = await seedDraftProduct();
+
+    const listResponse = await request(app)
+      .get("/api/products")
+      .query({ limit: 50 })
+      .expect(200);
+
+    assert.ok(
+      listResponse.body.data.some(
+        (item: { id: string }) => item.id === published._id.toString()
+      )
+    );
+    assert.ok(
+      !listResponse.body.data.some(
+        (item: { id: string }) => item.id === draft._id.toString()
+      )
+    );
+
+    await request(app).get(`/api/products/${draft._id.toString()}`).expect(404);
+
+    const ignoredStatusResponse = await request(app)
+      .get("/api/products")
+      .query({ status: "draft", limit: 50 })
+      .expect(200);
+
+    assert.ok(
+      ignoredStatusResponse.body.data.every(
+        (item: { status: string }) => item.status === "published"
+      )
+    );
+  });
+
+  it("allows admin to list and fetch unpublished products", async () => {
+    const draft = await seedDraftProduct();
+    const { body } = await registerAdmin(app);
+
+    const listResponse = await request(app)
+      .get("/api/products")
+      .set(authHeader(body.accessToken))
+      .query({ status: "draft", limit: 50 })
+      .expect(200);
+
+    assert.ok(
+      listResponse.body.data.some(
+        (item: { id: string }) => item.id === draft._id.toString()
+      )
+    );
+
+    const getResponse = await request(app)
+      .get(`/api/products/${draft._id.toString()}`)
+      .set(authHeader(body.accessToken))
+      .expect(200);
+
+    assert.equal(getResponse.body.id, draft._id.toString());
+    assert.equal(getResponse.body.status, "draft");
+  });
+
+  it("filters published products by categoryId and brandId", async () => {
+    const { Category } = await import("../src/models/Category.js");
+    const { Brand } = await import("../src/models/Brand.js");
+
+    const category = await Category.create({
+      name: "Filter Category",
+      slug: `filter-category-${Date.now()}`,
+      status: "published",
+    });
+    const brand = await Brand.create({
+      name: "Filter Brand",
+      slug: `filter-brand-${Date.now()}`,
+      status: "published",
+    });
+
+    const matched = await Product.create({
+      name: "Matched Product",
+      slug: `matched-product-${Date.now()}`,
+      sku: `MATCH-${Date.now()}`,
+      price: 12,
+      stock: 5,
+      status: "published",
+      categoryId: category._id,
+      categoryName: category.name,
+      brandId: brand._id,
+      brandName: brand.name,
+    });
+    await seedPublishedProduct();
+
+    const categoryResponse = await request(app)
+      .get("/api/products")
+      .query({ categoryId: category._id.toString(), limit: 50 })
+      .expect(200);
+
+    assert.equal(categoryResponse.body.total, 1);
+    assert.equal(categoryResponse.body.data[0].id, matched._id.toString());
+
+    const brandResponse = await request(app)
+      .get("/api/products")
+      .query({ brandId: brand._id.toString(), limit: 50 })
+      .expect(200);
+
+    assert.equal(brandResponse.body.total, 1);
+    assert.equal(brandResponse.body.data[0].id, matched._id.toString());
   });
 
   it("forbids customers from creating products", async () => {

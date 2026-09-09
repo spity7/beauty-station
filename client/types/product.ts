@@ -179,6 +179,8 @@ export interface Product {
   /** Full gallery when loaded from API. */
   images?: string[];
   brandName?: string;
+  brandId?: string;
+  categoryId?: string;
   description?: string;
   attributes?: Record<string, string | string[]>;
 }

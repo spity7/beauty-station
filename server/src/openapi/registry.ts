@@ -23,6 +23,7 @@ import {
   errorResponseSchema,
   healthResponseSchema,
   listQuerySchema,
+  productListQuerySchema,
   loginSchema,
   paginatedAttributesSchema,
   paginatedBrandsSchema,
@@ -100,6 +101,7 @@ openApiRegistry.register("UpdateBrandInput", updateBrandSchema);
 openApiRegistry.register("CreateAttributeInput", createAttributeSchema);
 openApiRegistry.register("UpdateAttributeInput", updateAttributeSchema);
 openApiRegistry.register("ListQuery", listQuerySchema);
+openApiRegistry.register("ProductListQuery", productListQuerySchema);
 openApiRegistry.register("PaginatedProducts", paginatedProductsSchema);
 openApiRegistry.register("PaginatedCategories", paginatedCategoriesSchema);
 openApiRegistry.register("PaginatedBrands", paginatedBrandsSchema);
@@ -151,6 +153,7 @@ function registerCrudPaths(options: {
   createSchema: z.ZodType;
   updateSchema: z.ZodType;
   resourceName: string;
+  listQuery?: typeof listQuerySchema | typeof productListQuerySchema;
 }) {
   const {
     tag,
@@ -160,6 +163,7 @@ function registerCrudPaths(options: {
     createSchema,
     updateSchema,
     resourceName,
+    listQuery = listQuerySchema,
   } = options;
 
   openApiRegistry.registerPath({
@@ -168,7 +172,7 @@ function registerCrudPaths(options: {
     tags: [tag],
     operationId: `list${resourceName}`,
     summary: `List ${resourceName.toLowerCase()}s`,
-    request: { query: listQuerySchema },
+    request: { query: listQuery },
     responses: {
       200: {
         description: "Paginated list",
@@ -299,6 +303,7 @@ registerCrudPaths({
   createSchema: createProductSchema,
   updateSchema: updateProductSchema,
   resourceName: "Product",
+  listQuery: productListQuerySchema,
 });
 
 openApiRegistry.registerPath({

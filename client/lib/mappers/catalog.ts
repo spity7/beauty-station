@@ -5,6 +5,7 @@ export type StorefrontCategoryItem = {
   id: string;
   image: string;
   name: string;
+  productCount?: number;
 };
 
 const PLACEHOLDER_CATEGORY_IMAGE =
@@ -18,6 +19,7 @@ export function mapCategoryDtoToStorefront(
     name: category.name,
     image: category.image || PLACEHOLDER_CATEGORY_IMAGE,
     href: `/shop?categoryId=${category.id}`,
+    productCount: category.productCount,
   };
 }
 

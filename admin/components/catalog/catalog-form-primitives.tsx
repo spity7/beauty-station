@@ -535,11 +535,16 @@ type ControlledFieldProps = {
   disabled?: boolean;
   error?: string;
   help?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   label: string;
   maxLength?: number;
+  min?: number | string;
   onChange: (value: string) => void;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  onPaste?: React.ClipboardEventHandler<HTMLInputElement>;
   placeholder?: string;
   required?: boolean;
+  step?: number | string;
   type?: string;
   value: string;
 };
@@ -548,11 +553,16 @@ export function ControlledField({
   disabled = false,
   error,
   help,
+  inputMode,
   label,
   maxLength,
+  min,
   onChange,
+  onKeyDown,
+  onPaste,
   placeholder,
   required,
+  step,
   type = "text",
   value,
 }: ControlledFieldProps) {
@@ -574,10 +584,15 @@ export function ControlledField({
             : "border-surface-line focus:border-brand-600"
         )}
         disabled={disabled}
+        inputMode={inputMode}
         maxLength={maxLength}
+        min={min}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
         placeholder={placeholder}
         required={required}
+        step={step}
         type={type}
         value={value}
       />

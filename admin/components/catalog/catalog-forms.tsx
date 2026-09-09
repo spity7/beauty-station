@@ -109,6 +109,72 @@ function revokeImageEntry(entry: CatalogImagePreview): void {
   }
 }
 
+const STOCK_NAVIGATION_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "Backspace",
+  "Delete",
+  "End",
+  "Home",
+  "Tab",
+]);
+
+function sanitizeStockInput(value: string): string | null {
+  if (value === "") {
+    return "";
+  }
+
+  return /^\d+$/.test(value) ? value : null;
+}
+
+function blockInvalidStockKeys(
+  event: React.KeyboardEvent<HTMLInputElement>
+): void {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+
+  if (STOCK_NAVIGATION_KEYS.has(event.key)) {
+    return;
+  }
+
+  if (/^\d$/.test(event.key)) {
+    return;
+  }
+
+  event.preventDefault();
+}
+
+function pasteStockDigits(
+  event: React.ClipboardEvent<HTMLInputElement>,
+  onValidPaste: (value: string) => void
+): void {
+  event.preventDefault();
+  const digits = event.clipboardData.getData("text").replace(/\D/g, "");
+  const nextValue = sanitizeStockInput(digits);
+
+  if (nextValue !== null && nextValue !== "") {
+    onValidPaste(nextValue);
+  }
+}
+
+function validateStock(value: string): string | undefined {
+  if (value.trim() === "") {
+    return "Stock is required.";
+  }
+
+  const stockValue = Number(value);
+  if (!Number.isFinite(stockValue) || !Number.isInteger(stockValue)) {
+    return "Stock must be a whole number.";
+  }
+
+  if (stockValue < 0) {
+    return "Stock cannot be negative.";
+  }
+
+  return undefined;
+}
+
 export function ProductCatalogForm({
   attributes,
   brands,
@@ -125,7 +191,9 @@ export function ProductCatalogForm({
   const [compareAtPrice, setCompareAtPrice] = useState(
     initial?.compareAtPrice != null ? String(initial.compareAtPrice) : ""
   );
-  const [stock, setStock] = useState(String(initial?.stock ?? 0));
+  const [stock, setStock] = useState(() =>
+    String(Math.max(0, initial?.stock ?? 0))
+  );
   const [description, setDescription] = useState(initial?.description ?? "");
   const [status, setStatus] = useState<ProductDto["status"]>(
     initial?.status ?? "draft"
@@ -146,6 +214,7 @@ export function ProductCatalogForm({
     error: null,
     loading: false,
   });
+  const [stockError, setStockError] = useState<string>();
   const initialHostedImages = useMemo(
     () => (initial?.images ?? []).filter(isHostedCatalogImageUrl),
     [initial?.images]
@@ -193,6 +262,13 @@ export function ProductCatalogForm({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
+    const nextStockError = validateStock(stock);
+    if (nextStockError) {
+      setStockError(nextStockError);
+      return;
+    }
+    setStockError(undefined);
 
     const publishError = getPublishLinkError(
       status,
@@ -386,11 +462,33 @@ export function ProductCatalogForm({
               />
               <ControlledField
                 disabled={disabled}
+                error={stockError}
+                help="Units available to sell. Must be 0 or greater."
+                inputMode="numeric"
                 label="Stock"
-                onChange={setStock}
+                onChange={(value) => {
+                  const nextValue = sanitizeStockInput(value);
+                  if (nextValue === null) {
+                    return;
+                  }
+
+                  setStock(nextValue);
+                  if (stockError) {
+                    setStockError(undefined);
+                  }
+                }}
+                onKeyDown={blockInvalidStockKeys}
+                onPaste={(event) =>
+                  pasteStockDigits(event, (value) => {
+                    setStock(value);
+                    if (stockError) {
+                      setStockError(undefined);
+                    }
+                  })
+                }
                 placeholder="0"
                 required
-                type="number"
+                type="text"
                 value={stock}
               />
             </div>

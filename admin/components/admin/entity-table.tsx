@@ -27,11 +27,20 @@ type FilterOption<T> = {
   value: string;
 };
 
+type FilterGroup<T> = {
+  ariaLabel: string;
+  className?: string;
+  defaultValue: string;
+  key: string;
+  options: FilterOption<T>[];
+};
+
 type EntityTableProps<T extends { id: string }> = {
   columns: EntityColumn<T>[];
   deleteMessage?: string;
   editHref: string | ((row: T) => string);
   enableColumnToggle?: boolean;
+  filterGroups?: FilterGroup<T>[];
   filterOptions?: FilterOption<T>[];
   getRowLabel?: (row: T) => string;
   items: T[];
@@ -52,6 +61,7 @@ export function EntityTable<T extends { id: string }>({
   deleteMessage,
   editHref,
   enableColumnToggle = false,
+  filterGroups,
   filterOptions,
   getRowLabel,
   items,
@@ -65,6 +75,11 @@ export function EntityTable<T extends { id: string }>({
   const hideableColumns = columns.filter((column) => column.hideable);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState(filterOptions?.[0]?.value ?? "all");
+  const [groupFilters, setGroupFilters] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (filterGroups ?? []).map((group) => [group.key, group.defaultValue])
+    )
+  );
   const [rows, setRows] = useState(items);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [columnsOpen, setColumnsOpen] = useState(false);
@@ -92,6 +107,9 @@ export function EntityTable<T extends { id: string }>({
     const activeFilter = filterOptions?.find(
       (option) => option.value === filter
     );
+    const activeGroupFilters = (filterGroups ?? []).map((group) =>
+      group.options.find((option) => option.value === groupFilters[group.key])
+    );
     const sortColumn = columns.find((column) => column.key === sort.key);
 
     const next = rows.filter((row) => {
@@ -99,7 +117,10 @@ export function EntityTable<T extends { id: string }>({
         !normalizedQuery ||
         searchText(row).toLowerCase().includes(normalizedQuery);
       const matchesFilter = !activeFilter || activeFilter.match(row);
-      return matchesQuery && matchesFilter;
+      const matchesGroupFilters = activeGroupFilters.every(
+        (option) => !option || option.match(row)
+      );
+      return matchesQuery && matchesFilter && matchesGroupFilters;
     });
 
     if (!sortColumn?.sortValue) {
@@ -117,7 +138,17 @@ export function EntityTable<T extends { id: string }>({
 
       return String(aValue).localeCompare(String(bValue)) * direction;
     });
-  }, [columns, filter, filterOptions, query, rows, searchText, sort]);
+  }, [
+    columns,
+    filter,
+    filterGroups,
+    filterOptions,
+    groupFilters,
+    query,
+    rows,
+    searchText,
+    sort,
+  ]);
 
   const allVisibleSelected =
     filteredRows.length > 0 &&
@@ -193,12 +224,26 @@ export function EntityTable<T extends { id: string }>({
     );
   }
 
+  const hasActiveGroupFilters = (filterGroups ?? []).some(
+    (group) => groupFilters[group.key] !== group.defaultValue
+  );
   const hasActiveFilters =
-    query.trim().length > 0 || filter !== defaultFilterValue;
+    query.trim().length > 0 ||
+    filter !== defaultFilterValue ||
+    hasActiveGroupFilters;
 
   function clearAllFilters() {
     setQuery("");
     setFilter(defaultFilterValue);
+    setGroupFilters(
+      Object.fromEntries(
+        (filterGroups ?? []).map((group) => [group.key, group.defaultValue])
+      )
+    );
+  }
+
+  function setGroupFilter(key: string, value: string) {
+    setGroupFilters((current) => ({ ...current, [key]: value }));
   }
 
   const selectedLabels = rows
@@ -216,6 +261,18 @@ export function EntityTable<T extends { id: string }>({
               placeholder={searchPlaceholder}
               value={query}
             />
+            {filterGroups?.map((group) => (
+              <ListFilterSelect
+                ariaLabel={group.ariaLabel}
+                className={group.className ?? "w-[180px]"}
+                defaultValue={group.defaultValue}
+                key={group.key}
+                onValueChange={(value) => setGroupFilter(group.key, value)}
+                options={group.options}
+                size="lg"
+                value={groupFilters[group.key] ?? group.defaultValue}
+              />
+            ))}
             {filterOptions ? (
               <ListFilterSelect
                 className="w-[180px]"

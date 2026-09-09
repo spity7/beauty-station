@@ -305,19 +305,50 @@ export function AttributeListTable({
           showToast,
         });
       }}
-      filterOptions={[
-        { label: "All types", match: () => true, value: "all" },
+      filterGroups={[
         {
-          label: "Dropdown",
-          match: (row) => row.type === "Dropdown",
-          value: "dropdown",
+          ariaLabel: "Filter by status",
+          className: "w-[160px]",
+          defaultValue: "all",
+          key: "status",
+          options: [
+            { label: "All statuses", match: () => true, value: "all" },
+            {
+              label: "Published",
+              match: (row) => row.status === "published",
+              value: "published",
+            },
+            {
+              label: "Draft",
+              match: (row) => row.status === "draft",
+              value: "draft",
+            },
+          ],
         },
         {
-          label: "Swatch",
-          match: (row) => row.type === "Swatch",
-          value: "swatch",
+          ariaLabel: "Filter by type",
+          className: "w-[160px]",
+          defaultValue: "all",
+          key: "type",
+          options: [
+            { label: "All types", match: () => true, value: "all" },
+            {
+              label: "Dropdown",
+              match: (row) => row.type === "Dropdown",
+              value: "dropdown",
+            },
+            {
+              label: "Swatch",
+              match: (row) => row.type === "Swatch",
+              value: "swatch",
+            },
+            {
+              label: "Text",
+              match: (row) => row.type === "Text",
+              value: "text",
+            },
+          ],
         },
-        { label: "Text", match: (row) => row.type === "Text", value: "text" },
       ]}
       items={rows}
       searchLabel="Search attributes"
