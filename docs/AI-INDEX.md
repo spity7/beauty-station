@@ -42,7 +42,7 @@ ecommerce-platform/
 | -------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------- |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                                               | Monorepo layout, multi-site, OpenAPI/Orval, CI, new sites | 2026-09-11    |
 | [ROUTES.md](ROUTES.md)                                                           | HTTP API + admin/storefront route inventory               | 2026-09-11    |
-| [CONVENTIONS.md](CONVENTIONS.md)                                                 | Naming, UI stacks, patterns per workspace                 | 2026-09-08    |
+| [CONVENTIONS.md](CONVENTIONS.md)                                                 | Naming, UI stacks, patterns per workspace                 | 2026-09-11    |
 | [../admin/README.md](../admin/README.md)                                         | Admin workspace scope + API integration                   | 2026-09-05    |
 | [site-registry.json](site-registry.json)                                         | Deployed sites metadata (DB, GCS, URLs, features)         | 2026-08-22    |
 | [../AGENTS.md](../AGENTS.md)                                                     | Cross-tool agent entry                                    | 2026-08-24    |

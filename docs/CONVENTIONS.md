@@ -1,6 +1,6 @@
 # Code conventions
 
-Per-workspace patterns for humans and AI. **Last reviewed:** 2026-09-06.
+Per-workspace patterns for humans and AI. **Last reviewed:** 2026-09-11.
 
 ## Monorepo
 
@@ -29,17 +29,21 @@ const site = getSiteConfig(process.env.SITE_ID);
 | `getStorefrontSiteConfig()` | `client/lib/site.ts` | `NEXT_PUBLIC_SITE_URL`, `API_URL` / `NEXT_PUBLIC_API_URL` |
 | `getAdminSiteConfig()`      | `admin/lib/site.ts`  | None (uses config as-is)                                  |
 
-| Env var                                             | Where          | Purpose                                    |
-| --------------------------------------------------- | -------------- | ------------------------------------------ |
-| `SITE_ID`                                           | server         | Select site config + DB context            |
-| `NEXT_PUBLIC_SITE_ID`                               | admin, client  | Select site config in browser              |
-| `MONGODB_URI`                                       | server         | MongoDB connection (one DB per site)       |
-| `API_URL` / `NEXT_PUBLIC_API_URL`                   | admin, client  | Backend base URL                           |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`           | server         | Sign access/refresh tokens                 |
-| `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`   | server         | Token lifetime (e.g. `15m`, `7d`)          |
-| `NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE`                  | admin          | Cookie max-age (seconds); match access JWT |
-| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | server, client | Google OAuth (same Web client ID)          |
-| `SMTP_*`, `EMAIL_FROM`                              | server         | Password reset + email verification links  |
+| Env var                                             | Where          | Purpose                                         |
+| --------------------------------------------------- | -------------- | ----------------------------------------------- |
+| `SITE_ID`                                           | server         | Select site config + DB context                 |
+| `NEXT_PUBLIC_SITE_ID`                               | admin, client  | Select site config in browser                   |
+| `MONGODB_URI`                                       | server         | MongoDB connection (one DB per site)            |
+| `API_URL` / `NEXT_PUBLIC_API_URL`                   | admin, client  | Backend base URL                                |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`           | server         | Sign access/refresh tokens                      |
+| `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`   | server         | Token lifetime (e.g. `15m`, `7d`)               |
+| `NEXT_PUBLIC_ACCESS_TOKEN_MAX_AGE`                  | admin, client  | Cookie max-age (seconds); match access JWT      |
+| `NEXT_PUBLIC_REFRESH_TOKEN_MAX_AGE`                 | admin, client  | Cookie max-age (seconds); match refresh JWT     |
+| `NEXT_PUBLIC_BASE_URL`                              | admin, client  | Optional subdirectory deploy (`/admin`, etc.)   |
+| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | server, client | Google OAuth (same Web client ID)               |
+| `SMTP_*`, `EMAIL_FROM`                              | server         | Password reset + email verification links       |
+| `ADMIN_*`, `DEMO_CUSTOMER_*`, `SEED_DEMO_CUSTOMER`  | server         | `npm run seed` users (dev defaults in examples) |
+| `SKIP_AUTH_RATE_LIMIT`                              | server         | Optional — disable rate limits in local testing |
 
 Reference templates: `server/.env.example`, `admin/.env.example`, `client/.env.example`, and `sites/{id}/.env.example` from `npm run create-site`.
 
@@ -48,7 +52,7 @@ Reference templates: `server/.env.example`, `admin/.env.example`, `client/.env.e
 - Run `npm run create-site` for env scaffolding.
 - Do **not** hardcode site names in feature code.
 
-**First admin:** `npm run seed:admin` (uses `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` in `server/.env`; defaults are dev-only). Re-running promotes an existing user to `admin` and resets the password.
+**Fresh local DB:** `npm run seed` clears catalog + commerce data, seeds the site dataset, and creates admin + demo customer (`ADMIN_*`, `DEMO_CUSTOMER_*` in `server/.env`). **`npm run seed:admin`** only upserts the admin user when the catalog already exists.
 
 ## API contract
 
