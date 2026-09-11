@@ -357,6 +357,82 @@ describe("commerce API", () => {
     assert.equal(updatedProduct?.stock, 5);
   });
 
+  it("lets a customer cancel a pending order and restores stock", async () => {
+    const product = await seedPublishedProduct();
+    product.stock = 4;
+    await product.save();
+    const { body } = await registerCustomer(app);
+    await verifyCustomerEmail(app, body.accessToken);
+
+    await request(app)
+      .post("/api/cart/items")
+      .set(authHeader(body.accessToken))
+      .send({ productId: product._id.toString(), quantity: 2 })
+      .expect(201);
+
+    const orderResponse = await request(app)
+      .post("/api/orders")
+      .set(authHeader(body.accessToken))
+      .send({
+        shippingAddress: {
+          name: "Test Customer",
+          line1: "123 Test Street",
+          city: "Austin",
+          country: "United States",
+          phone: TEST_PHONE,
+        },
+      })
+      .expect(201);
+
+    const cancelResponse = await request(app)
+      .post(`/api/orders/${orderResponse.body.id}/cancel`)
+      .set(authHeader(body.accessToken))
+      .expect(200);
+
+    assert.equal(cancelResponse.body.status, "cancelled");
+
+    const updatedProduct = await Product.findById(product._id);
+    assert.equal(updatedProduct?.stock, 4);
+  });
+
+  it("rejects cancelling a shipped order", async () => {
+    const product = await seedPublishedProduct();
+    const customer = await registerCustomer(app);
+    await verifyCustomerEmail(app, customer.body.accessToken);
+    const admin = await registerAdmin(app);
+
+    await request(app)
+      .post("/api/cart/items")
+      .set(authHeader(customer.body.accessToken))
+      .send({ productId: product._id.toString(), quantity: 1 })
+      .expect(201);
+
+    const orderResponse = await request(app)
+      .post("/api/orders")
+      .set(authHeader(customer.body.accessToken))
+      .send({
+        shippingAddress: {
+          name: "Test Customer",
+          line1: "123 Test Street",
+          city: "Austin",
+          country: "United States",
+          phone: TEST_PHONE,
+        },
+      })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/orders/${orderResponse.body.id}`)
+      .set(authHeader(admin.body.accessToken))
+      .send({ status: "shipped" })
+      .expect(200);
+
+    await request(app)
+      .post(`/api/orders/${orderResponse.body.id}/cancel`)
+      .set(authHeader(customer.body.accessToken))
+      .expect(400);
+  });
+
   it("removes deleted products from cart on GET", async () => {
     const product = await seedPublishedProduct();
     const customer = await registerCustomer(app);

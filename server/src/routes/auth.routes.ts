@@ -100,6 +100,10 @@ authRouter.post(
       return;
     }
 
+    if (user.isActive === false) {
+      throw new AppError(403, "Account disabled");
+    }
+
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       throw new AppError(401, "Invalid email or password");
@@ -314,6 +318,10 @@ authRouter.post(
       await reactivateAccount(user);
     } else if (isAccountDeleted(user)) {
       throw new AppError(401, "Account is deactivated");
+    }
+
+    if (user.isActive === false) {
+      throw new AppError(403, "Account disabled");
     }
 
     user.oauthProvider = "google";

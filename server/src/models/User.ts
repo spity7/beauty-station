@@ -29,6 +29,7 @@ const userSchema = new Schema(
     passwordResetTokenHash: { type: String },
     passwordResetExpires: { type: Date },
     deletedAt: { type: Date },
+    isActive: { type: Boolean, default: true },
     addresses: [userAddressSchema],
   },
   { timestamps: true }

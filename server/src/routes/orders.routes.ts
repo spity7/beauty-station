@@ -18,6 +18,7 @@ import {
   getOrderUserId,
 } from "../services/order-customer.js";
 import {
+  cancelOrderForCustomer,
   placeOrderFromCart,
   restoreOrderStock,
 } from "../services/order.service.js";
@@ -91,6 +92,21 @@ ordersRouter.get(
       throw new AppError(403, "Forbidden");
     }
 
+    res.json(toOrderDto(order, getOrderCustomer(order)));
+  })
+);
+
+ordersRouter.post(
+  "/:id/cancel",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const orderId = req.params.id;
+    if (!orderId || Array.isArray(orderId)) {
+      throw new AppError(400, "Invalid order ID");
+    }
+
+    const order = await cancelOrderForCustomer(orderId, req.auth!.userId);
+    await order.populate("userId", "name email");
     res.json(toOrderDto(order, getOrderCustomer(order)));
   })
 );

@@ -1,7 +1,13 @@
 "use client";
 import { WaveFatIcon } from "../svg-icons";
 import Image from "next/image";
-import { useMemo } from "react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useShopCatalogNavigation } from "@/hooks/useShopCatalogNavigation";
+import {
+  sortApiValueToLabel,
+  sortLabelToApiValue,
+  type ShopCatalogQuery,
+} from "@/lib/shop-query";
 
 import {
   clearAllFilters,
@@ -65,6 +71,7 @@ export default function ShopDefault({
   cardVariant = "default",
   catalogFilters,
   catalogPagination,
+  catalogQuery,
   products,
   hasCardBorder = false,
   detailsPageUrl = "/product-single-default",
@@ -85,22 +92,49 @@ export default function ShopDefault({
   cardVariant?: CardVariant;
   catalogFilters?: ShopCatalogFilters;
   catalogPagination?: ShopCatalogPagination;
+  catalogQuery?: ShopCatalogQuery;
   products?: Product[];
   hasCardBorder?: boolean;
   detailsPageUrl?: string;
   initialFilters?: ShopInitialFilters;
 }) {
+  const isServerCatalog = Boolean(catalogPagination && catalogQuery);
+  const [searchValue, setSearchValue] = useState(initialFilters?.search ?? "");
+  const { navigate, clearFilters } = useShopCatalogNavigation(
+    catalogQuery ?? { page: 1 }
+  );
   const { state, dispatch, visibleProducts, getFilterCount, isLoadMore } =
     useShopState({
       column,
       defaultBrands: initialFilters?.brandNames ?? [],
       defaultCategories: initialFilters?.categoryNames ?? [],
+      defaultSortingOption: sortApiValueToLabel(initialFilters?.sort),
       loaderType,
       defaultTags: defaultFilterTag,
       itemPerPage: catalogPagination?.limit ?? itemPerPage,
       products,
       serverPagination: Boolean(catalogPagination),
     });
+  const serverCatalogControls = isServerCatalog
+    ? {
+        brandId: catalogQuery?.brandId,
+        categoryId: catalogQuery?.categoryId,
+        minPrice: catalogQuery?.minPrice,
+        maxPrice: catalogQuery?.maxPrice,
+        onBrandChange: (brandId?: string) => navigate({ brandId }),
+        onCategoryChange: (categoryId?: string) => navigate({ categoryId }),
+        onPriceChange: (minPrice?: number, maxPrice?: number) =>
+          navigate({ minPrice, maxPrice }),
+      }
+    : undefined;
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!isServerCatalog) {
+      return;
+    }
+    navigate({ search: searchValue.trim() || undefined });
+  }
   const columnClass = useMemo(() => {
     if (column <= 4) {
       return `col-xxl-${12 / column} col-xl-6 col-lg-6 col-md-6 col-sm-6 col-6 product-col mt--24 ${containerFull ? "" : "product-four-col"}`;
@@ -208,6 +242,7 @@ export default function ShopDefault({
                   <Sidebar
                     catalogFilters={catalogFilters}
                     getFilterCount={getFilterCount}
+                    serverCatalog={serverCatalogControls}
                     state={state}
                     dispatch={dispatch}
                   />
@@ -230,24 +265,25 @@ export default function ShopDefault({
           <div className={contentColClass}>
             <div className="row row--12">
               <div className="col-md-12">
-                <div className="rbt-shop-tools-wrapper">
-                  <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper w-100">
-                    <h6 className="rbt-shop-tools-title">Fast FIlter :</h6>
-                    <div className="rbt-shop-filter-tag-list rbt-tag-list rbt-tag-list-rounded rbt-tag-list-var-one">
-                      <FilterByTag
-                        selectedItems={state.tags}
-                        onChange={(value) =>
-                          toggleTag(value, dispatch, state.tags)
-                        }
-                      />
+                {!isServerCatalog ? (
+                  <div className="rbt-shop-tools-wrapper">
+                    <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper w-100">
+                      <h6 className="rbt-shop-tools-title">Fast FIlter :</h6>
+                      <div className="rbt-shop-filter-tag-list rbt-tag-list rbt-tag-list-rounded rbt-tag-list-var-one">
+                        <FilterByTag
+                          selectedItems={state.tags}
+                          onChange={(value) =>
+                            toggleTag(value, dispatch, state.tags)
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : null}
                 <div className="rbt-shop-tools-wrapper rbt-shop-tools-wrapper-var-one mt--20">
                   <div className="rbt-shop-tool-content rbt-shop-view-var-wrapper">
                     <h6 className="rbt-shop-tools-title">
-                      Showing {fromResult}–{toResult} of{" "}
-                      {state.sorted.length ?? 0} results
+                      Showing {fromResult}–{toResult} of {resultTotal} results
                     </h6>
                     <div className="rbt-shop-view-btn-list rbt-tag-list-rounded rbt-shop-view-menu">
                       <LayoutHandler column={column} />
@@ -258,8 +294,20 @@ export default function ShopDefault({
                       <h6 className="rbt-shop-tools-title">Sort :</h6>
                       <div className="rbt-modern-select rbt-shop-view-sort-select-one">
                         <DropdownSelect
-                          selected={state.sortingOption}
-                          onChange={(value) => setSorting(value, dispatch)}
+                          selected={
+                            isServerCatalog
+                              ? sortApiValueToLabel(catalogQuery?.sort)
+                              : state.sortingOption
+                          }
+                          onChange={(value) => {
+                            if (isServerCatalog) {
+                              navigate({
+                                sort: sortLabelToApiValue(value),
+                              });
+                              return;
+                            }
+                            setSorting(value, dispatch);
+                          }}
                         />
                       </div>
                     </div>
@@ -286,22 +334,32 @@ export default function ShopDefault({
                     </div>
                   </div>
                   <div className="rbt-shop-tool-content rbt-shop-view-var-wrapper">
-                    <div className="rbt-inner-search-field style-one rbt-search-field-rounded">
-                      <input type="text" placeholder="Search for products" />
+                    <form
+                      className="rbt-inner-search-field style-one rbt-search-field-rounded"
+                      onSubmit={handleSearchSubmit}
+                    >
+                      <input
+                        type="search"
+                        placeholder="Search for products"
+                        value={searchValue}
+                        onChange={(event) => setSearchValue(event.target.value)}
+                      />
                       <button
                         className="rbt-round-btn search-btn"
                         type="submit"
                       >
                         <i className="fa-solid fa-magnifying-glass" />
                       </button>
+                    </form>
+                  </div>
+                </div>
+                {!isServerCatalog ? (
+                  <div className="rbt-shop-tools-wrapper">
+                    <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper">
+                      <FilterMeta state={state} dispatch={dispatch} />
                     </div>
                   </div>
-                </div>
-                <div className="rbt-shop-tools-wrapper">
-                  <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper">
-                    <FilterMeta state={state} dispatch={dispatch} />
-                  </div>
-                </div>
+                ) : null}
               </div>
             </div>
             {/* Start Card Area */}
@@ -316,7 +374,11 @@ export default function ShopDefault({
                     <button
                       type="button"
                       className="rbt-btn rbt-btn-sm"
-                      onClick={() => clearAllFilters(dispatch)}
+                      onClick={() =>
+                        isServerCatalog
+                          ? clearFilters()
+                          : clearAllFilters(dispatch)
+                      }
                     >
                       Clear Filters
                     </button>

@@ -760,4 +760,35 @@ describe("catalog API", () => {
 
     assert.match(patchResponse.body.error, /still use it/);
   });
+
+  it("filters and sorts products by price and title", async () => {
+    await Product.create([
+      {
+        name: "Alpha Serum",
+        slug: `alpha-${Date.now()}`,
+        sku: `ALPHA-${Date.now()}`,
+        price: 20,
+        stock: 5,
+        status: "published",
+      },
+      {
+        name: "Zeta Cream",
+        slug: `zeta-${Date.now()}`,
+        sku: `ZETA-${Date.now()}`,
+        price: 80,
+        stock: 5,
+        status: "published",
+      },
+    ]);
+
+    const filtered = await request(app)
+      .get("/api/products")
+      .query({ minPrice: 50, maxPrice: 100, sort: "title_asc" })
+      .expect(200);
+
+    assert.ok(filtered.body.data.length >= 1);
+    assert.ok(filtered.body.data.every((product: { price: number }) => product.price >= 50));
+    assert.ok(filtered.body.data.every((product: { price: number }) => product.price <= 100));
+    assert.equal(filtered.body.data[0]?.name, "Zeta Cream");
+  });
 });

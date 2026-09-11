@@ -192,8 +192,10 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
 2. `npm run build:packages`
 3. `npm run typecheck` — full monorepo type check
 4. `npm run test:ci` — API integration tests against MongoDB 7 (`MONGODB_URI_TEST`)
+5. `npm run build -w @platform/admin` — production admin build
+6. `npm run build -w @platform/storefront` — production storefront build
 
-CI does **not** run Next.js builds or workspace lint yet.
+Workspace lint/format gates (`npm run check -w @platform/admin`, `npm run lint -w @platform/storefront`) are not in CI yet due to pre-existing theme/demo debt.
 
 ### API integration tests
 
@@ -219,7 +221,7 @@ See [ROUTES.md](ROUTES.md) for the full table. Summary:
 
 Catalog **GET** routes are public (no auth). Catalog **POST/PATCH/DELETE** and **uploads** require admin JWT (`bearerAuth` in OpenAPI).
 
-**Deploy note:** Public catalog reads are intentional for the storefront (`/shop`, `/product/[slug]`). Anonymous `GET /api/products` and `GET /api/products/:id` return **published** products only; admin JWT can list/fetch draft and archived. Rate-limit anonymous list endpoints if needed before production.
+**Deploy note:** Public catalog reads are intentional for the storefront (`/shop`, `/product/[slug]`). Anonymous `GET /api/products` and `GET /api/products/:id` return **published** products only; admin JWT can list/fetch draft and archived. Anonymous catalog GET routes are rate-limited (300 requests / 15 min per IP); requests with a Bearer token skip the limit.
 
 ## Database
 

@@ -74,4 +74,7 @@ export {
   removeWishlistItem,
   clearWishlist,
   moveWishlistItemToCart,
+  cancelOrder,
 } from "./commerce-api.js";
+
+export { fetchAdminUsers, updateAdminUserStatus } from "./admin-api.js";

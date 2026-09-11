@@ -10,6 +10,8 @@ type PlaceOrderContext = {
   role: string;
 };
 
+const CUSTOMER_CANCELLABLE_STATUSES = new Set(["pending", "processing"]);
+
 async function decrementStockWithRollback(
   items: Array<{ productId: unknown; quantity: number; productName: string }>
 ): Promise<void> {
@@ -123,4 +125,35 @@ export async function placeOrderFromCart(
   }
 
   return { order, user };
+}
+
+export async function cancelOrderForCustomer(
+  orderId: string,
+  userId: string
+) {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new AppError(404, "Order not found");
+  }
+
+  if (order.userId.toString() !== userId) {
+    throw new AppError(403, "Forbidden");
+  }
+
+  if (!CUSTOMER_CANCELLABLE_STATUSES.has(order.status)) {
+    throw new AppError(
+      400,
+      "This order can no longer be cancelled because it has already shipped."
+    );
+  }
+
+  const previousStatus = order.status;
+  order.status = "cancelled";
+  await order.save();
+
+  if (previousStatus !== "cancelled") {
+    await restoreOrderStock(order.items);
+  }
+
+  return order;
 }

@@ -1,6 +1,6 @@
 # Backend API Feature Breakdown — Beauty Station
 
-> **Status (2026-09-05):** **Roadmap / planning doc** — not all endpoints below exist. **Implemented today:** catalog CRUD (mutations require admin JWT; slugs server-derived; category/brand/attribute delete returns **409** when products reference them; category/brand rename propagates denormalized names; attribute rename migrates product keys; attribute `productCount` maintained), auth with refresh revocation + rate limits + password reset + email verification (sent on register) + Google social sign-in (profile photo import), user profile (`GET /api/users/me`) + avatar URL + soft-delete account (password or Google `idToken`), OAuth set-password flow, saved addresses, cart, **wishlist** (auth-only API + storefront sync when `features.wishlist`; optimistic UI + mutation queue; guest pending queue in sessionStorage; `/my-wishlist` canonical page; header modal preview; cart/wishlist independent), orders (place requires verified email for customers), `/api/uploads`, `/api/health`. **Admin:** catalog CRUD forms + product attribute picker. Storefront: customer auth via httpOnly BFF cookies, Google sign-in when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is set, API cart sync, `/checkout` with default-address pre-fill, order confirmation at `/checkout-thankyou?orderId=`, order detail at `/my-order-history/[orderId]`, `/account-info` profile/avatar/email verification/password/addresses/delete, `/forgot-password` when `features.customerAuth` is enabled. Client wishlist unit tests: `npm run test -w @platform/storefront`.
+> **Status (2026-09-11):** **Roadmap / planning doc** — not all endpoints below exist. **Implemented today:** catalog CRUD + product list filters (`search`, `sort`, `minPrice`, `maxPrice`; anonymous catalog GET rate-limited), auth with refresh revocation + rate limits + password reset + email verification (sent on register) + Google social sign-in (profile photo import), user profile (`GET /api/users/me`) + avatar URL + soft-delete account (password or Google `idToken`), OAuth set-password flow, saved addresses, cart, **wishlist** (auth-only API + storefront sync when `features.wishlist`), orders (place requires verified email; customer cancel before shipped), **admin users** (`GET /api/admin/users`, `PATCH /api/admin/users/:id/status`), `/api/uploads`, `/api/health`. **Admin:** catalog CRUD + orders + **customers list (API)**. Storefront: `/shop` URL-driven API filters/search, header search → `/shop?search=`, customer auth, checkout, order history/detail with cancel, account pages. Client wishlist unit tests: `npm run test -w @platform/storefront`.
 
 > **Stack context:** Next.js App Router storefront + Express API monorepo. Static mock data remains in `client/data/` for theme demos.
 
@@ -38,8 +38,8 @@
 ### 2.1 Products
 
 - `GET /api/products` — List products with query params:
-  - `page`, `limit`, `sort` (price_asc, price_desc, title_asc, title_desc)
-  - `minPrice`, `maxPrice`
+  - `page`, `limit`, `sort` (price_asc, price_desc, title_asc, title_desc, newest) _(sort + min/max price implemented)_
+  - `minPrice`, `maxPrice` _(implemented)_
   - `brands[]`, `categories[]`, `colors[]`, `sizes[]`
   - `tags[]`, `services[]`, `ratings[]`
   - `onSale`, `inStock`
@@ -148,7 +148,7 @@
 
 - `GET /api/orders` — User order history (paginated)
 - `GET /api/orders/:id` — Order detail (items, status, tracking)
-- `POST /api/orders/:id/cancel` — Cancel order (if not shipped)
+- `POST /api/orders/:id/cancel` — Cancel order (if not shipped) _(implemented for customer owner; pending/processing only)_
 - `GET /api/orders/:id/invoice` — Download invoice PDF
 
 ### 7.4 Order Returns
@@ -266,8 +266,8 @@
 - `GET /api/admin/stats/sales` — Sales chart data (daily/weekly/monthly)
 - `GET /api/admin/stats/top-products` — Best-selling products
 - `GET /api/admin/stats/top-categories` — Top-performing categories
-- `GET /api/admin/users` — List users (filterable, paginated)
-- `PATCH /api/admin/users/:id/status` — Enable/disable user
+- `GET /api/admin/users` — List users (filterable, paginated) _(implemented)_
+- `PATCH /api/admin/users/:id/status` — Enable/disable user _(implemented)_
 - `GET /api/admin/inventory/low-stock` — Products below stock threshold
 
 ---

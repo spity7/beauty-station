@@ -1,4 +1,5 @@
 import { z } from "../zod.js";
+import { PRODUCT_SORT_OPTIONS } from "../types/catalog.js";
 import {
   ATTRIBUTE_DISPLAY_TYPES,
   ATTRIBUTE_STATUSES,
@@ -106,8 +107,11 @@ export const listQuerySchema = z.object({
 });
 
 export const productListQuerySchema = listQuerySchema.extend({
-  categoryId: z.string().optional(),
   brandId: z.string().optional(),
+  categoryId: z.string().optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  sort: z.enum(PRODUCT_SORT_OPTIONS).optional(),
 });
 
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;

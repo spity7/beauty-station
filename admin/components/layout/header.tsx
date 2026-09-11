@@ -51,19 +51,19 @@ function MobileLogo() {
       href={routes.dashboard}
     >
       <Image
-        alt="Beauty Station"
+        alt={siteConfig.displayName}
         className="h-7 w-auto dark:hidden"
         height={32}
         priority
-        src={`${baseURL}assets/images/logo/logo.webp`}
+        src={`${baseURL}${siteConfig.branding.logo.replace(/^\//, "")}`}
         style={{ width: "auto" }}
         width={142}
       />
       <Image
-        alt="Beauty Station"
+        alt={siteConfig.displayName}
         className="hidden h-7 w-auto dark:block"
         height={32}
-        src={`${baseURL}assets/images/logo/logo-blackbg.webp`}
+        src={`${baseURL}${(siteConfig.branding.logoDark ?? siteConfig.branding.logo).replace(/^\//, "")}`}
         style={{ width: "auto" }}
         width={142}
       />

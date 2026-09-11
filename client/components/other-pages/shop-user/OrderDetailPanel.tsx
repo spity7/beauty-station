@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchOrder } from "@platform/api-client";
+import { cancelOrder, fetchOrder } from "@platform/api-client";
+import { useSubmitBusy } from "@platform/react-busy";
 import type { OrderDto } from "@platform/shared";
 import {
   formatOrderDate,
@@ -25,6 +26,11 @@ export default function OrderDetailPanel({ orderId }: OrderDetailPanelProps) {
   const [order, setOrder] = useState<OrderDto | null>(null);
   const [loading, setLoading] = useState(site.features.customerAuth);
   const [error, setError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const { disabled: cancelDisabled } = useSubmitBusy(cancelling);
+  const canCancel =
+    order?.status === "pending" || order?.status === "processing";
 
   useEffect(() => {
     if (!site.features.customerAuth) {
@@ -63,6 +69,23 @@ export default function OrderDetailPanel({ orderId }: OrderDetailPanelProps) {
     return <p className="mb--0">Loading order…</p>;
   }
 
+  async function handleCancelOrder() {
+    if (!order || !canCancel) {
+      return;
+    }
+
+    setCancelError(null);
+    setCancelling(true);
+    try {
+      const updated = await cancelOrder(order.id);
+      setOrder(updated);
+    } catch {
+      setCancelError("Could not cancel this order. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (error || !order) {
     return (
       <div>
@@ -97,6 +120,21 @@ export default function OrderDetailPanel({ orderId }: OrderDetailPanelProps) {
         <p className="description mb--0 mt--8">
           Placed {formatOrderDate(order.createdAt)}
         </p>
+        {canCancel ? (
+          <div className="mt--16">
+            <button
+              className="rbt-btn rbt-btn-border rbt-btn-sm"
+              disabled={cancelDisabled}
+              onClick={() => void handleCancelOrder()}
+              type="button"
+            >
+              {cancelling ? "Cancelling…" : "Cancel order"}
+            </button>
+            {cancelError ? (
+              <p className="rbt-text-color-danger mb--0 mt--12">{cancelError}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="rbt-transparent-table-one-wrapper rbt-has-bg-gray p--24 mb--24">

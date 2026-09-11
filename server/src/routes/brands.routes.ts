@@ -9,6 +9,7 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { Brand } from "../models/Brand.js";
 import { Product } from "../models/Product.js";
 import { syncProductBrandNames } from "../utils/catalog-relations.js";
+import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toBrandDto } from "../utils/serializers.js";
 import { getInitials, slugify } from "../utils/strings.js";
@@ -25,6 +26,7 @@ export const brandsRouter = Router();
 
 brandsRouter.get(
   "/",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const filter: Record<string, unknown> = {};
@@ -54,6 +56,7 @@ brandsRouter.get(
 
 brandsRouter.get(
   "/:id",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const brand = await Brand.findById(req.params.id);
     if (!brand) {

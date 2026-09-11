@@ -30,7 +30,11 @@ import {
   collectRemovedManagedCatalogImages,
   deleteManagedCatalogImagesIfPresent,
 } from "../services/managed-catalog-storage.js";
-import { buildProductListFilter } from "../utils/product-list-filter.js";
+import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
+import {
+  buildProductListFilter,
+  buildProductListSort,
+} from "../utils/product-list-filter.js";
 
 function isAdminRequest(req: AuthenticatedRequest): boolean {
   return req.auth?.role === "admin";
@@ -40,6 +44,7 @@ export const productsRouter = Router();
 
 productsRouter.get(
   "/slug/:slug",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const product = await Product.findOne({
       slug: req.params.slug,
@@ -54,18 +59,17 @@ productsRouter.get(
 
 productsRouter.get(
   "/",
+  catalogReadRateLimiter,
   optionalAuth,
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const query = productListQuerySchema.parse(req.query);
     const filter = buildProductListFilter(query, isAdminRequest(req));
+    const sort = buildProductListSort(query.sort);
 
     const skip = (query.page - 1) * query.limit;
 
     const [items, total] = await Promise.all([
-      Product.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(query.limit),
+      Product.find(filter).sort(sort).skip(skip).limit(query.limit),
       Product.countDocuments(filter),
     ]);
 
@@ -80,6 +84,7 @@ productsRouter.get(
 
 productsRouter.get(
   "/:id",
+  catalogReadRateLimiter,
   optionalAuth,
   asyncHandler(async (req: AuthenticatedRequest, res) => {
     const product = await Product.findById(req.params.id);

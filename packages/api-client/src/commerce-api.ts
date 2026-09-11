@@ -42,6 +42,10 @@ export async function fetchOrder(id: string) {
   return platformApi.getOrder(id);
 }
 
+export async function cancelOrder(id: string) {
+  return platformApi.cancelOrder(id);
+}
+
 export async function updateUserProfile(input: {
   name?: string;
   phone?: string;

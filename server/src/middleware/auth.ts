@@ -15,10 +15,10 @@ async function validateAccessToken(
   try {
     const payload = verifyAccessToken(token);
     const user = await User.findById(payload.userId).select(
-      "refreshTokenVersion deletedAt"
+      "refreshTokenVersion deletedAt isActive"
     );
 
-    if (!user || isAccountDeleted(user)) {
+    if (!user || isAccountDeleted(user) || user.isActive === false) {
       return null;
     }
 

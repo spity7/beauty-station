@@ -6,6 +6,8 @@ import { electronicsHoverVideoData } from "@/data/products/electronics";
 import Tooltip from "@/components/common/ui/Tooltip";
 import useCopyToClipboard from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
+import StorefrontProductSearchForm from "@/components/store/StorefrontProductSearchForm";
+import { buildShopCatalogHref } from "@/lib/shop-query";
 
 const POPULAR_SEARCHES = [
   "Fashion",
@@ -23,7 +25,7 @@ const POPULAR_SEARCHES = [
 ];
 
 export default function SearchDropdown() {
-  const { searchOpen } = useUiElement();
+  const { closeSearch, searchOpen } = useUiElement();
   const { registerInputRef, getTooltip, copyFromRef, isCopied } =
     useCopyToClipboard({ defaultTooltip: "Copy" });
   return (
@@ -48,37 +50,8 @@ export default function SearchDropdown() {
           </div>
           <div className="row">
             <div className="col-lg-12">
-              <form
-                className="rbt-search-form"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <div className="input-section position-relative w-100 mr--12 mr_sm--4">
-                  <input
-                    className="search-input"
-                    type="text"
-                    placeholder="What Are You Looking For?"
-                    aria-label="Search products"
-                  />
-                  <i
-                    className="fa-sharp fa-regular inner-search-icon fa-magnifying-glass"
-                    aria-hidden="true"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Search by image"
-                    className="media-search-btn media-search-popup-activation"
-                  >
-                    <i
-                      className="fa-sharp fa-regular fa-camera"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
-                <div className="submit-btn">
-                  <button type="submit" className="rbt-btn btn-md">
-                    Search
-                  </button>
-                </div>
+              <StorefrontProductSearchForm onSubmitted={closeSearch} />
+              <div className="rbt-search-form">
                 <div className="rbt-media-search-section">
                   <div className="rbt-media-wrapper">
                     <div className="section-title">
@@ -159,7 +132,7 @@ export default function SearchDropdown() {
                   className="rbt-ms-dismiss-outsider"
                   aria-label="Close search dropdown"
                 />
-              </form>
+              </div>
             </div>
           </div>
           <div className="row">
@@ -172,7 +145,10 @@ export default function SearchDropdown() {
             </div>
             <div className="rbt-search-list-wrapper rbt-tag-list rbt-tag-list-rounded-lg">
               {POPULAR_SEARCHES.map((keyword, index) => (
-                <Link key={`${keyword}-${index}`} href="/shop-by-categories">
+                <Link
+                key={`${keyword}-${index}`}
+                href={buildShopCatalogHref({ page: 1, search: keyword })}
+              >
                   {keyword}
                 </Link>
               ))}

@@ -6,6 +6,10 @@ import { StorefrontChrome } from "@/components/site/StorefrontChrome";
 import { cosmeticProducts } from "@/data/products/beauty";
 import { mapProductDtosToStorefront } from "@/lib/mappers/product";
 import {
+  parseShopCatalogQuery,
+  shopCatalogQueryToProductParams,
+} from "@/lib/shop-query";
+import {
   loadShopCatalogFilters,
   resolveShopInitialFilters,
 } from "@/lib/shop-catalog";
@@ -16,7 +20,6 @@ import type { Product } from "@/types/product";
 import type { ShopCatalogPagination } from "@/types/shop-catalog";
 
 const site = getStorefrontSiteConfig();
-const SHOP_PAGE_SIZE = 15;
 
 export const metadata: Metadata = {
   title: `Shop | ${site.seo.title}`,
@@ -28,18 +31,13 @@ type ShopProductLoadResult = {
   products: Product[];
 };
 
-async function loadShopProducts(params: {
-  brandId?: string;
-  categoryId?: string;
-  page: number;
-}): Promise<ShopProductLoadResult> {
+async function loadShopProducts(
+  query: ReturnType<typeof parseShopCatalogQuery>
+): Promise<ShopProductLoadResult> {
   try {
-    const response = await fetchProducts({
-      brandId: params.brandId,
-      categoryId: params.categoryId,
-      limit: SHOP_PAGE_SIZE,
-      page: params.page,
-    });
+    const response = await fetchProducts(
+      shopCatalogQueryToProductParams(query)
+    );
     if (response.data.length > 0 || response.total > 0) {
       return {
         products: mapProductDtosToStorefront(response.data),
@@ -62,22 +60,15 @@ async function loadShopProducts(params: {
 export default async function ShopPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    brandId?: string;
-    categoryId?: string;
-    page?: string;
-  }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { brandId, categoryId, page: pageParam } = await searchParams;
-  const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+  const resolvedSearchParams = await searchParams;
+  const catalogQuery = parseShopCatalogQuery(resolvedSearchParams);
   const [{ products, catalogPagination }, catalogFilters] = await Promise.all([
-    loadShopProducts({ brandId, categoryId, page }),
+    loadShopProducts(catalogQuery),
     loadShopCatalogFilters(),
   ]);
-  const initialFilters = resolveShopInitialFilters(catalogFilters, {
-    brandId,
-    categoryId,
-  });
+  const initialFilters = resolveShopInitialFilters(catalogFilters, catalogQuery);
 
   return (
     <StorefrontChrome>
@@ -93,6 +84,7 @@ export default async function ShopPage({
         cardVariant="standard"
         catalogFilters={catalogFilters}
         catalogPagination={catalogPagination}
+        catalogQuery={catalogQuery}
         detailsPageUrl="/product"
         initialFilters={initialFilters}
         products={products}

@@ -55,6 +55,10 @@ import {
   wishlistItemInputSchema,
   moveWishlistItemSchema,
   moveWishlistToCartResponseSchema,
+  adminUserListQuerySchema,
+  adminUserListItemSchema,
+  paginatedAdminUsersSchema,
+  updateAdminUserStatusSchema,
 } from "@platform/shared";
 import { z } from "@platform/shared/zod";
 
@@ -813,6 +817,22 @@ openApiRegistry.registerPath({
 });
 
 openApiRegistry.registerPath({
+  method: "post",
+  path: "/api/orders/{id}/cancel",
+  tags: ["Orders"],
+  operationId: "cancelOrder",
+  summary: "Cancel order (customer, before shipped)",
+  security: [{ bearerAuth: [] }],
+  request: { params: idParamSchema },
+  responses: {
+    200: {
+      description: "Cancelled order",
+      content: { "application/json": { schema: orderDtoSchema } },
+    },
+  },
+});
+
+openApiRegistry.registerPath({
   method: "patch",
   path: "/api/orders/{id}",
   tags: ["Orders"],
@@ -829,6 +849,49 @@ openApiRegistry.registerPath({
     200: {
       description: "Order",
       content: { "application/json": { schema: orderDtoSchema } },
+    },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: "get",
+  path: "/api/admin/users",
+  tags: ["Admin"],
+  operationId: "listAdminUsers",
+  summary: "List users (admin)",
+  security: [{ bearerAuth: [] }],
+  request: { query: adminUserListQuerySchema },
+  responses: {
+    200: {
+      description: "Users",
+      content: {
+        "application/json": { schema: paginatedAdminUsersSchema },
+      },
+    },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: "patch",
+  path: "/api/admin/users/{id}/status",
+  tags: ["Admin"],
+  operationId: "updateAdminUserStatus",
+  summary: "Enable or disable a user (admin)",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: idParamSchema,
+    body: {
+      content: {
+        "application/json": { schema: updateAdminUserStatusSchema },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Updated user",
+      content: {
+        "application/json": { schema: adminUserListItemSchema },
+      },
     },
   },
 });

@@ -18,17 +18,30 @@ import { FilterState, FilterAction } from "@/types";
 import { Product } from "@/types";
 import type { ShopCatalogFilters } from "@/types/shop-catalog";
 
+type ServerCatalogControls = {
+  brandId?: string;
+  categoryId?: string;
+  maxPrice?: number;
+  minPrice?: number;
+  onBrandChange: (brandId?: string) => void;
+  onCategoryChange: (categoryId?: string) => void;
+  onPriceChange: (minPrice?: number, maxPrice?: number) => void;
+};
+
 export default function Sidebar({
   catalogFilters,
+  serverCatalog,
   state,
   dispatch,
   getFilterCount,
 }: {
   catalogFilters?: ShopCatalogFilters;
+  serverCatalog?: ServerCatalogControls;
   state: FilterState;
   dispatch: Dispatch<FilterAction>;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
+  const serverMode = Boolean(serverCatalog);
   return (
     <div className="rbt-sidebar-bottom">
       {/* Start Widget Area  */}
@@ -52,17 +65,22 @@ export default function Sidebar({
             <ul className="rbt-sidebar-list-wrapper rbt-categories-list-check">
               <FilterByCategories
                 categories={catalogFilters?.categories}
-                selectedItems={state.categories}
                 getFilterCount={getFilterCount}
                 onChange={(value) =>
                   toggleCategory(value, dispatch, state.categories)
                 }
+                onSelectId={serverCatalog?.onCategoryChange}
+                selectedId={serverCatalog?.categoryId}
+                selectedItems={state.categories}
+                serverMode={serverMode}
               />
             </ul>
           </div>
         </div>
       </div>
       {/* End Widget Area  */}
+      {!serverMode ? (
+        <>
       {/* Start Widget Area  */}
       <div className="rbt-single-widget rbt-widget-categories">
         <div className="bt-single-widget-inner">
@@ -93,6 +111,8 @@ export default function Sidebar({
         </div>
       </div>
       {/* End Widget Area  */}
+        </>
+      ) : null}
       {/* Start Widget Area  */}
       <div className="rbt-single-widget rbt-widget-categories">
         <div className="bt-single-widget-inner">
@@ -113,13 +133,19 @@ export default function Sidebar({
           <div className="collapse show" id="rbt-collapse-7">
             <FilterByPrice
               getFilterCount={getFilterCount}
-              priceRange={state.price}
               onChange={(value) => setPriceRange(value, dispatch)}
+              onServerPriceChange={serverCatalog?.onPriceChange}
+              priceRange={state.price}
+              selectedMax={serverCatalog?.maxPrice}
+              selectedMin={serverCatalog?.minPrice}
+              serverMode={serverMode}
             />
           </div>
         </div>
       </div>
       {/* End Widget Area  */}
+      {!serverMode ? (
+        <>
       {/* Start Widget Area  */}
       <div className="rbt-single-widget rbt-widget-categories">
         <div className="bt-single-widget-inner">
@@ -159,6 +185,8 @@ export default function Sidebar({
         </div>
       </div>
       {/* End Widget Area  */}
+        </>
+      ) : null}
       {/* Start Widget Area  */}
       <div className="rbt-single-widget rbt-widget-categories">
         <div className="bt-single-widget-inner">
@@ -181,14 +209,19 @@ export default function Sidebar({
               <FilterByBrand
                 brands={catalogFilters?.brands}
                 getFilterCount={getFilterCount}
-                selectedItems={state.brands}
                 onChange={(value) => toggleBrand(value, dispatch, state.brands)}
+                onSelectId={serverCatalog?.onBrandChange}
+                selectedId={serverCatalog?.brandId}
+                selectedItems={state.brands}
+                serverMode={serverMode}
               />
             </ul>
           </div>
         </div>
       </div>
       {/* End Widget Area  */}
+      {!serverMode ? (
+        <>
       {/* Start Widget Area  */}
       <div className="rbt-single-widget rbt-widget-categories">
         <div className="bt-single-widget-inner">
@@ -219,6 +252,8 @@ export default function Sidebar({
         </div>
       </div>
       {/* End Widget Area  */}
+        </>
+      ) : null}
     </div>
   );
 }

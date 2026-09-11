@@ -12,6 +12,7 @@ type UseShopStateOptions = {
   defaultBrands?: string[];
   defaultCategories?: string[];
   loaderType?: LoaderType | string;
+  defaultSortingOption?: string;
   defaultTags?: string[];
   itemPerPage?: number;
   products?: Product[];
@@ -23,6 +24,7 @@ export function useShopState({
   defaultBrands = [],
   defaultCategories = [],
   loaderType = "pagination",
+  defaultSortingOption = "Sort by (Default)",
   defaultTags = [],
   itemPerPage = 0,
   products,
@@ -43,9 +45,15 @@ export function useShopState({
         ? column * 3
         : column * 5,
     tags: defaultTags,
+    sortingOption: defaultSortingOption,
   });
 
   useEffect(() => {
+    if (serverPagination) {
+      dispatch({ type: "SET_SERVER_PRODUCTS", payload: sourceProducts });
+      return;
+    }
+
     dispatch({ type: "FILTER_PRODUCTS", payload: sourceProducts });
   }, [
     state.brands,
@@ -59,11 +67,16 @@ export function useShopState({
     state.price,
     state.tags,
     sourceProducts,
+    serverPagination,
   ]);
 
   useEffect(() => {
+    if (serverPagination) {
+      return;
+    }
+
     dispatch({ type: "SORT_PRODUCTS" });
-  }, [state.sortingOption, state.filtered]);
+  }, [serverPagination, state.sortingOption, state.filtered]);
 
   const isLoadMore = loaderType === "button";
 

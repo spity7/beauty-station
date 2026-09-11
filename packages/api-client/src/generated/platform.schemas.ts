@@ -432,6 +432,18 @@ export interface ListQuery {
   search?: string;
 }
 
+export type ProductListQuerySort =
+  (typeof ProductListQuerySort)[keyof typeof ProductListQuerySort];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ProductListQuerySort = {
+  newest: "newest",
+  price_asc: "price_asc",
+  price_desc: "price_desc",
+  title_asc: "title_asc",
+  title_desc: "title_desc",
+} as const;
+
 export interface ProductListQuery {
   /** @minimum 1 */
   page?: number;
@@ -442,8 +454,19 @@ export interface ProductListQuery {
   limit?: number;
   status?: string;
   search?: string;
-  categoryId?: string;
   brandId?: string;
+  categoryId?: string;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  maxPrice?: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  minPrice?: number | null;
+  sort?: ProductListQuerySort;
 }
 
 export type PaginatedProductsDataItemStatus =
@@ -1198,9 +1221,32 @@ export type ListProductParams = {
   limit?: number;
   status?: string;
   search?: string;
-  categoryId?: string;
   brandId?: string;
+  categoryId?: string;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  maxPrice?: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  minPrice?: number | null;
+  sort?: ListProductSort;
 };
+
+export type ListProductSort =
+  (typeof ListProductSort)[keyof typeof ListProductSort];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListProductSort = {
+  newest: "newest",
+  price_asc: "price_asc",
+  price_desc: "price_desc",
+  title_asc: "title_asc",
+  title_desc: "title_desc",
+} as const;
 
 export type ListProduct200DataItemStatus =
   (typeof ListProduct200DataItemStatus)[keyof typeof ListProduct200DataItemStatus];
@@ -3192,6 +3238,151 @@ export type UpdateOrder200 = {
   shippingAddress?: UpdateOrder200ShippingAddress;
   createdAt: string;
   updatedAt: string;
+};
+
+export type CancelOrder200Status =
+  (typeof CancelOrder200Status)[keyof typeof CancelOrder200Status];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CancelOrder200Status = {
+  pending: "pending",
+  processing: "processing",
+  shipped: "shipped",
+  delivered: "delivered",
+  cancelled: "cancelled",
+} as const;
+
+export type CancelOrder200ItemsItem = {
+  productId: string;
+  quantity: number;
+  productName: string;
+  productSlug: string;
+  productImage: string;
+  price: number;
+  lineTotal: number;
+};
+
+export type CancelOrder200ShippingAddress = {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  name: string;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  line1: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  city: string;
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  country: string;
+  /** @maxLength 40 */
+  phone?: string;
+};
+
+export type CancelOrder200 = {
+  id: string;
+  userId: string;
+  customerName?: string;
+  customerEmail?: string;
+  status: CancelOrder200Status;
+  items: CancelOrder200ItemsItem[];
+  itemCount: number;
+  subtotal: number;
+  total: number;
+  shippingAddress?: CancelOrder200ShippingAddress;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListAdminUsersParams = {
+  /**
+   * @minimum 1
+   */
+  page?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  status?: string;
+  search?: string;
+  role?: ListAdminUsersRole;
+  /**
+   * @nullable
+   */
+  isActive?: boolean | null;
+};
+
+export type ListAdminUsersRole =
+  (typeof ListAdminUsersRole)[keyof typeof ListAdminUsersRole];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListAdminUsersRole = {
+  admin: "admin",
+  customer: "customer",
+} as const;
+
+export type ListAdminUsers200DataItemRole =
+  (typeof ListAdminUsers200DataItemRole)[keyof typeof ListAdminUsers200DataItemRole];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListAdminUsers200DataItemRole = {
+  admin: "admin",
+  customer: "customer",
+} as const;
+
+export type ListAdminUsers200DataItem = {
+  id: string;
+  name: string;
+  email: string;
+  role: ListAdminUsers200DataItemRole;
+  phone?: string;
+  emailVerified: boolean;
+  isActive: boolean;
+  /** @minimum 0 */
+  orderCount: number;
+  createdAt: string;
+};
+
+export type ListAdminUsers200 = {
+  data: ListAdminUsers200DataItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type UpdateAdminUserStatusBody = {
+  isActive: boolean;
+};
+
+export type UpdateAdminUserStatus200Role =
+  (typeof UpdateAdminUserStatus200Role)[keyof typeof UpdateAdminUserStatus200Role];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UpdateAdminUserStatus200Role = {
+  admin: "admin",
+  customer: "customer",
+} as const;
+
+export type UpdateAdminUserStatus200 = {
+  id: string;
+  name: string;
+  email: string;
+  role: UpdateAdminUserStatus200Role;
+  phone?: string;
+  emailVerified: boolean;
+  isActive: boolean;
+  /** @minimum 0 */
+  orderCount: number;
+  createdAt: string;
 };
 
 export type GetUserProfile200Role =

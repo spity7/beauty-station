@@ -15,12 +15,18 @@ const fallbackCategories: ShopCategoryFilterOption[] = [
 export default function FilterByCategories({
   categories = fallbackCategories,
   selectedItems,
+  selectedId,
+  serverMode = false,
   onChange,
+  onSelectId,
   getFilterCount,
 }: {
   categories?: ShopCategoryFilterOption[];
   selectedItems: string[];
+  selectedId?: string;
+  serverMode?: boolean;
   onChange: (value: string) => void;
+  onSelectId?: (id: string | undefined) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
   const items = categories.length > 0 ? categories : fallbackCategories;
@@ -28,7 +34,9 @@ export default function FilterByCategories({
   return (
     <>
       {items.map((category) => {
-        const isChecked = selectedItems.includes(category.name);
+        const isChecked = serverMode
+          ? selectedId === category.id
+          : selectedItems.includes(category.name);
         const inputId = `category-checkbox-${category.id}`;
 
         return (
@@ -40,7 +48,13 @@ export default function FilterByCategories({
               checked={isChecked}
               id={inputId}
               name="category"
-              onChange={() => onChange(category.name)}
+              onChange={() => {
+                if (serverMode) {
+                  onSelectId?.(isChecked ? undefined : category.id);
+                  return;
+                }
+                onChange(category.name);
+              }}
               type="checkbox"
             />
             <label htmlFor={inputId}>

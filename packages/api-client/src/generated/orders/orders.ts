@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  CancelOrder200,
   CreateOrder201,
   CreateOrderBody,
   GetOrder200,
@@ -54,7 +55,16 @@ export const getOrders = () => {
       data: updateOrderBody,
     });
   };
-  return { createOrder, listOrders, getOrder, updateOrder };
+  /**
+   * @summary Cancel order (customer, before shipped)
+   */
+  const cancelOrder = (id: string) => {
+    return customInstance<CancelOrder200>({
+      url: `/api/orders/${id}/cancel`,
+      method: "POST",
+    });
+  };
+  return { createOrder, listOrders, getOrder, updateOrder, cancelOrder };
 };
 export type CreateOrderResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getOrders>["createOrder"]>>
@@ -67,4 +77,7 @@ export type GetOrderResult = NonNullable<
 >;
 export type UpdateOrderResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getOrders>["updateOrder"]>>
+>;
+export type CancelOrderResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getOrders>["cancelOrder"]>>
 >;

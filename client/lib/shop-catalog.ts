@@ -47,7 +47,14 @@ export async function loadShopCatalogFilters(): Promise<ShopCatalogFilters> {
 
 export function resolveShopInitialFilters(
   catalogFilters: ShopCatalogFilters,
-  params: { brandId?: string; categoryId?: string }
+  params: {
+    brandId?: string;
+    categoryId?: string;
+    maxPrice?: number;
+    minPrice?: number;
+    search?: string;
+    sort?: import("@platform/shared").ProductSort;
+  }
 ): ShopInitialFilters {
   const category = params.categoryId
     ? catalogFilters.categories.find((item) => item.id === params.categoryId)
@@ -57,7 +64,13 @@ export function resolveShopInitialFilters(
     : undefined;
 
   return {
-    categoryNames: category ? [category.name] : [],
+    brandId: params.brandId,
     brandNames: brand ? [brand.name] : [],
+    categoryId: params.categoryId,
+    categoryNames: category ? [category.name] : [],
+    maxPrice: params.maxPrice,
+    minPrice: params.minPrice,
+    search: params.search,
+    sort: params.sort,
   };
 }

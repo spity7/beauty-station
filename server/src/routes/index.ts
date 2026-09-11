@@ -6,6 +6,7 @@ import { AppError } from "../middleware/errorHandler.js";
 import { uploadFile, deleteFileIfExists } from "../services/storage.service.js";
 import { getManagedCatalogObjectPath } from "../utils/managed-catalog-path.js";
 import { deleteUploadSchema } from "@platform/shared";
+import { adminRouter } from "./admin.routes.js";
 import { attributesRouter } from "./attributes.routes.js";
 import { authRouter } from "./auth.routes.js";
 import { brandsRouter } from "./brands.routes.js";
@@ -41,6 +42,7 @@ apiRouter.use("/cart", cartRouter);
 apiRouter.use("/orders", ordersRouter);
 apiRouter.use("/users", usersRouter);
 apiRouter.use("/wishlist", wishlistRouter);
+apiRouter.use("/admin", adminRouter);
 
 apiRouter.post(
   "/uploads",

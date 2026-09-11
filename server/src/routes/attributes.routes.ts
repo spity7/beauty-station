@@ -12,6 +12,7 @@ import {
   assertNoProductsUseRemovedAttributeValues,
   countProductsUsingAttributeSlug,
 } from "../utils/catalog-relations.js";
+import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toAttributeDto } from "../utils/serializers.js";
 import { slugify } from "../utils/strings.js";
@@ -20,6 +21,7 @@ export const attributesRouter = Router();
 
 attributesRouter.get(
   "/",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const filter: Record<string, unknown> = {};
@@ -49,6 +51,7 @@ attributesRouter.get(
 
 attributesRouter.get(
   "/:id",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const attribute = await Attribute.findById(req.params.id);
     if (!attribute) {

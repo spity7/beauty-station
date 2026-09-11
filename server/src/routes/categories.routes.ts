@@ -9,6 +9,7 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
 import { syncProductCategoryNames } from "../utils/catalog-relations.js";
+import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toCategoryDto } from "../utils/serializers.js";
 import { slugify } from "../utils/strings.js";
@@ -22,6 +23,7 @@ export const categoriesRouter = Router();
 
 categoriesRouter.get(
   "/",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const filter: Record<string, unknown> = {};
@@ -51,6 +53,7 @@ categoriesRouter.get(
 
 categoriesRouter.get(
   "/:id",
+  catalogReadRateLimiter,
   asyncHandler(async (req, res) => {
     const category = await Category.findById(req.params.id);
     if (!category) {

@@ -1,6 +1,15 @@
 export const PRODUCT_STATUSES = ["draft", "published", "archived"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
+export const PRODUCT_SORT_OPTIONS = [
+  "newest",
+  "price_asc",
+  "price_desc",
+  "title_asc",
+  "title_desc",
+] as const;
+export type ProductSort = (typeof PRODUCT_SORT_OPTIONS)[number];
+
 export const CATEGORY_STATUSES = ["draft", "published"] as const;
 export type CategoryStatus = (typeof CATEGORY_STATUSES)[number];
 

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import type { z } from "zod";
+import type { ProductSort } from "@platform/shared";
 import type { productListQuerySchema } from "@platform/shared";
 import { AppError } from "../middleware/errorHandler.js";
 
@@ -38,5 +39,33 @@ export function buildProductListFilter(
     filter.brandId = parseObjectId(query.brandId, "brandId");
   }
 
+  if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+    const priceFilter: Record<string, number> = {};
+    if (query.minPrice !== undefined) {
+      priceFilter.$gte = query.minPrice;
+    }
+    if (query.maxPrice !== undefined) {
+      priceFilter.$lte = query.maxPrice;
+    }
+    filter.price = priceFilter;
+  }
+
   return filter;
+}
+
+export function buildProductListSort(
+  sort: ProductSort | undefined
+): Record<string, 1 | -1> {
+  switch (sort) {
+    case "price_asc":
+      return { price: 1 };
+    case "price_desc":
+      return { price: -1 };
+    case "title_asc":
+      return { name: 1 };
+    case "title_desc":
+      return { name: -1 };
+    default:
+      return { createdAt: -1 };
+  }
 }

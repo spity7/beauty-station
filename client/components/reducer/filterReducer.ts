@@ -109,6 +109,14 @@ export function reducer(state: FilterState, action: FilterAction): FilterState {
     case "SET_ITEM_PER_PAGE":
       return { ...state, itemPerPage: action.payload, currentPage: 1 };
 
+    case "SET_SERVER_PRODUCTS":
+      return {
+        ...state,
+        filtered: action.payload,
+        sorted: action.payload,
+        currentPage: 1,
+      };
+
     case "FILTER_PRODUCTS": {
       const productsToFilter = [...action.payload];
       const filtered = productsToFilter.filter((product) =>

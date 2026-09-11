@@ -18,8 +18,14 @@ export type ShopCatalogFilters = {
 };
 
 export type ShopInitialFilters = {
+  brandId?: string;
   brandNames?: string[];
+  categoryId?: string;
   categoryNames?: string[];
+  maxPrice?: number;
+  minPrice?: number;
+  search?: string;
+  sort?: import("@platform/shared").ProductSort;
 };
 
 export type ShopCatalogPagination = {

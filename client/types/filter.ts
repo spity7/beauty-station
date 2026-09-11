@@ -42,6 +42,7 @@ export type FilterAction =
   | { type: "SET_CURRENT_PAGE"; payload: number }
   | { type: "SET_ITEM_PER_PAGE"; payload: number }
   | { type: "FILTER_PRODUCTS"; payload: Product[] }
+  | { type: "SET_SERVER_PRODUCTS"; payload: Product[] }
   | { type: "SET_SORTING_OPTION"; payload: SortingOption }
   | { type: "SORT_PRODUCTS" }
   | { type: "TOGGLE_FILTER_ON_SALE" }

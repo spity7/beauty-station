@@ -46,12 +46,18 @@ const fallbackBrands: ShopBrandFilterOption[] = [
 export default function FilterByBrand({
   brands = fallbackBrands,
   selectedItems,
+  selectedId,
+  serverMode = false,
   onChange,
+  onSelectId,
   getFilterCount,
 }: {
   brands?: ShopBrandFilterOption[];
   selectedItems: string[];
+  selectedId?: string;
+  serverMode?: boolean;
   onChange: (value: string) => void;
+  onSelectId?: (id: string | undefined) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
   const items = brands.length > 0 ? brands : fallbackBrands;
@@ -59,7 +65,9 @@ export default function FilterByBrand({
   return (
     <>
       {items.map((brand) => {
-        const isActive = selectedItems.includes(brand.name);
+        const isActive = serverMode
+          ? selectedId === brand.id
+          : selectedItems.includes(brand.name);
         const inputId = `brand-checkbox-${brand.id}`;
 
         return (
@@ -71,7 +79,13 @@ export default function FilterByBrand({
               checked={isActive}
               id={inputId}
               name="brand"
-              onChange={() => onChange(brand.name)}
+              onChange={() => {
+                if (serverMode) {
+                  onSelectId?.(isActive ? undefined : brand.id);
+                  return;
+                }
+                onChange(brand.name);
+              }}
               type="checkbox"
             />
             <label htmlFor={inputId}>

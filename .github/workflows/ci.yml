@@ -42,3 +42,9 @@ jobs:
 
       - name: Integration tests
         run: npm run test:ci
+
+      - name: Build admin
+        run: npm run build -w @platform/admin
+
+      - name: Build storefront
+        run: npm run build -w @platform/storefront

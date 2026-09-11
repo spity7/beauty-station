@@ -16,10 +16,18 @@ const priceRanges = [
 export default function FilterByPrice({
   priceRange,
   onChange,
+  onServerPriceChange,
+  selectedMin,
+  selectedMax,
+  serverMode = false,
   getFilterCount,
 }: {
   priceRange: [number, number];
   onChange: (value: [number, number]) => void;
+  onServerPriceChange?: (minPrice?: number, maxPrice?: number) => void;
+  selectedMin?: number;
+  selectedMax?: number;
+  serverMode?: boolean;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
   const handleRangeChange = (range: number | number[]) => {
@@ -42,8 +50,12 @@ export default function FilterByPrice({
       {/* Price Range Checkboxes */}
       <ul className="rbt-sidebar-list-wrapper rbt-categories-list-check">
         {priceRanges.map((range) => {
-          const isChecked =
-            priceRange[0] === range.min && priceRange[1] === range.max;
+          const isChecked = serverMode
+            ? selectedMin === range.min &&
+              (range.max === Infinity
+                ? selectedMax === undefined
+                : selectedMax === range.max)
+            : priceRange[0] === range.min && priceRange[1] === range.max;
           const inputId = `price-checkbox-${range.id}`;
 
           return (
@@ -56,7 +68,20 @@ export default function FilterByPrice({
                 type="checkbox"
                 name={inputId}
                 checked={isChecked}
-                onChange={() => handleRangeChange([range.min, range.max])}
+                onChange={() => {
+                  if (serverMode) {
+                    onServerPriceChange?.(
+                      isChecked ? undefined : range.min,
+                      isChecked
+                        ? undefined
+                        : range.max === Infinity
+                          ? undefined
+                          : range.max
+                    );
+                    return;
+                  }
+                  handleRangeChange([range.min, range.max]);
+                }}
               />
               <label htmlFor={inputId}>
                 {range.label}
@@ -74,46 +99,48 @@ export default function FilterByPrice({
         })}
       </ul>
 
-      {/* Slider Range */}
-      <div className="rbt-price-range-slider">
-        <Slider
-          range
-          value={priceRange}
-          onChange={handleRangeChange}
-          max={1000}
-          min={0}
-          step={15}
-        />
-        <p className="rbt-range-value">
-          <input
-            type="text"
-            id="amount"
-            readOnly
-            value={`$${priceRange[0]} - $${priceRange[1]}`}
-          />
-        </p>
-      </div>
+      {!serverMode ? (
+        <>
+          <div className="rbt-price-range-slider">
+            <Slider
+              range
+              value={priceRange}
+              onChange={handleRangeChange}
+              max={1000}
+              min={0}
+              step={15}
+            />
+            <p className="rbt-range-value">
+              <input
+                type="text"
+                id="amount"
+                readOnly
+                value={`$${priceRange[0]} - $${priceRange[1]}`}
+              />
+            </p>
+          </div>
 
-      {/* Manual Input Group */}
-      <div className="rbt-price-input-grp">
-        <input
-          type="number"
-          min={0}
-          placeholder="$ Min"
-          value={priceRange[0]}
-          onChange={handleMinChange}
-        />
-        <input
-          type="number"
-          min={0}
-          placeholder="$ Max"
-          value={priceRange[1]}
-          onChange={handleMaxChange}
-        />
-        <button type="button" className="rbt-btn">
-          $Go
-        </button>
-      </div>
+          <div className="rbt-price-input-grp">
+            <input
+              type="number"
+              min={0}
+              placeholder="$ Min"
+              value={priceRange[0]}
+              onChange={handleMinChange}
+            />
+            <input
+              type="number"
+              min={0}
+              placeholder="$ Max"
+              value={priceRange[1]}
+              onChange={handleMaxChange}
+            />
+            <button type="button" className="rbt-btn">
+              $Go
+            </button>
+          </div>
+        </>
+      ) : null}
     </>
   );
 }
