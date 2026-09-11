@@ -130,7 +130,7 @@ Proxies to `@platform/server` and sets httpOnly cookies on the admin origin (`:3
 | `/settings`, `/settings/shipping`, `/settings/payments`, `/settings/permissions` | No             | Demo data                                                                         |
 | `/localization/currency-rates`, `/localization/translation`                      | No             | Demo data                                                                         |
 
-Navigation source: `admin/config/navigation.ts` + `admin/config/routes.ts`. Optional nav items are hidden when matching `SiteConfig.features` is `false` (e.g. `coupons`, `reviews`).
+Navigation source: `admin/config/navigation.ts` + `admin/config/routes.ts`. Sidebar lists list + create pages only; edit/detail use dynamic `[id]` routes from list rows (`pathBuilders` in `routes.ts`). Legacy `/…/demo/edit` URLs remain for template pages but are not in nav. Optional nav items are hidden when matching `SiteConfig.features` is `false` (e.g. `coupons`, `reviews`).
 
 ---
 

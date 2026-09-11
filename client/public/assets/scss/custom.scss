@@ -464,6 +464,22 @@ input:not(:placeholder-shown) + .cd-headline.clip {
   cursor: pointer;
 }
 
+/* Larger circular category thumbnails with tighter horizontal spacing. */
+.rbt-categories-area--large-circles {
+  .rbt-cat-box-1-rounded {
+    overflow: visible;
+
+    .inner {
+      justify-items: stretch;
+    }
+
+    .rbt-image-portion {
+      width: 100%;
+      margin-inline: 0;
+    }
+  }
+}
+
 // Keep current demo visible in mega menu based on pathname.
 .home-plesentation-wrapper {
   .demo-single .inner .content .rbt-title a.active {

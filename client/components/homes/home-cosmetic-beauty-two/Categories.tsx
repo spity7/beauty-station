@@ -21,25 +21,23 @@ async function loadCategories(): Promise<StorefrontCategoryItem[]> {
 }
 
 export default async function Categories({
-  removeCircle,
   sectionSpace,
 }: {
-  removeCircle?: string;
   sectionSpace?: string;
 }) {
   const categories = await loadCategories();
 
   return (
     <div
-      className={`rbt-component-area rbt-categories-area rbt-bg-color-white ${sectionSpace ? sectionSpace : "rbt-section-gapTop"}`}
+      className={`rbt-component-area rbt-categories-area rbt-categories-area--large-circles rbt-bg-color-white ${sectionSpace ? sectionSpace : "rbt-section-gapTop"}`}
     >
       <div className="container">
         <div className="row">
           <div className="col-lg-12 d-flex justify-content-between flex-row align-items-end mb--32 flex-wrap rbt-gap--16">
             <div className="rbt-component-section-title rbt-gap--4 mb--0 p-0 border-0">
-              <h2 className="rbt-title rbt-scroll-trigger fade_in animation-order-1">
-                <span className="rbt-bold--text">Popular by Categories</span>
-              </h2>
+              <h4 className="rbt-title rbt-scroll-trigger fade_in animation-order-1">
+                Popular by <span className="rbt-bold--text">Categories</span>
+              </h4>
             </div>
             <Link
               className="rbt-btn rbt-btn-secondary rbt-btn-sm-2 rbt-scroll-trigger fade_in animation-order-2"
@@ -52,7 +50,7 @@ export default async function Categories({
             </Link>
           </div>
         </div>
-        <div className="row row--8 mt_dec--16 align-items-end">
+        <div className="row row--12 mt_dec--16 align-items-end">
           {categories.map((category, index) => (
             <div
               className="col-lg-2 col-md-4 col-sm-4 col-4 mt--16"
@@ -63,14 +61,13 @@ export default async function Categories({
                 href={category.href}
               >
                 <div className="inner">
-                  <div
-                    className={`rbt-image-portion rbt-bg-color-brand-100 rbt-scroll-trigger zoom_in animation-order-${index + 1} ${removeCircle}`}
-                  >
+                  <div className="rbt-image-portion rbt-bg-color-brand-100">
                     <Image
                       alt={category.name}
-                      height={400}
+                      className="object-fit-cover"
+                      fill
+                      sizes="(max-width: 576px) 25vw, (max-width: 992px) 16vw, 12vw"
                       src={category.image}
-                      width={400}
                     />
                   </div>
                   <div className="content">

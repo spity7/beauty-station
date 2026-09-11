@@ -19,7 +19,7 @@ export default function page() {
     <>
       <Header13 sticky={true} />
       <Hero />
-      <Categories removeCircle="rounded-0" />
+      <Categories />
       <Products1 />
       <Banner />
       <VideosSection />

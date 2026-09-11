@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { megaMenuCategories, type MegaMenuCategory } from "@/data/megaMenu";
+import { CATEGORIES_PAGE_PATH } from "@/lib/category-paths";
 import MegaMenuFlameIcon from "./MegaMenuFlameIcon";
 
 // ─── Sub-components ────────────────────────────────────────────────────────────

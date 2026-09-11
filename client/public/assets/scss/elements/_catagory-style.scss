@@ -94,17 +94,50 @@ Catagory Styles
     }
 
     &.rbt-cat-box-1-rounded {
+      width: 100%;
+      overflow: visible;
+
       .inner {
         display: grid;
-        justify-content: center;
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        width: 100%;
       }
 
       .rbt-image-portion {
-        height: 100%;
+        display: block;
         width: 100%;
+        aspect-ratio: 1 / 1;
         border-radius: var(--radius-full);
         position: relative;
         overflow: hidden;
+        transition: transform 0.3s ease-in-out;
+
+        > span {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      &:hover {
+        .rbt-image-portion {
+          animation: none;
+          transform: scale(1.04);
+
+          img {
+            transform: none;
+          }
+        }
       }
     }
 
