@@ -1,24 +1,6 @@
-import Breadcrumb from "@/components/common/other-components/Breadcrumb";
-import Categories3 from "@/components/products/Categories3";
+import { CATEGORIES_PAGE_PATH } from "@/lib/category-paths";
+import { redirect } from "next/navigation";
 
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Categories List | Beauty Station | Cosmetics & Skincare",
-  description:
-    "Discover premium cosmetics and skincare products at Beauty Station.",
-};
-
-export default function CategoriesListPage() {
-  return (
-    <>
-      <Breadcrumb
-        className="rbt-breadcrumb-two rbt-bg-color-gray-light"
-        subtitle=""
-        hasHrLine
-        title="Categories List"
-      />
-      <Categories3 />
-    </>
-  );
+export default function CategoriesListRedirectPage() {
+  redirect(CATEGORIES_PAGE_PATH);
 }

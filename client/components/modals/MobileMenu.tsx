@@ -23,6 +23,7 @@ import { isInternalHref, isPathActive } from "@/lib/nav";
 import { mobileMenuSocialLinks } from "@/data/socials";
 import { contactInfo } from "@/data/contact";
 import { getStackedModalZIndex } from "@/lib/modalStack";
+import { CATEGORIES_PAGE_PATH } from "@/lib/category-paths";
 import { allElectronocsProducts } from "@/data/products/electronics";
 import { formatCurrency } from "@/lib/price";
 
@@ -880,9 +881,8 @@ export default function MobileMenu() {
                         </li>
                       ))}
                       <li>
-                        <Link href={`/categories-list`}>
-                          {" "}
-                          View All Categories{" "}
+                        <Link href={CATEGORIES_PAGE_PATH}>
+                          View All Categories
                         </Link>
                       </li>
                     </ul>

@@ -169,7 +169,7 @@ export default function MegaMenuDropdown({
             )
           )}
           <li className="dropdown-parent-list">
-            <Link href="/categories-list">
+            <Link href={CATEGORIES_PAGE_PATH}>
               View All Categories
               <i className="fa-regular fa-chevron-right ml--8" />
             </Link>
