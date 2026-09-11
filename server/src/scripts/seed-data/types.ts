@@ -34,6 +34,8 @@ export type SeedProduct = {
   stock: number;
   status: "published" | "draft";
   images: string[];
+  categorySlug?: string;
+  brandSlug?: string;
   attributes?: Record<string, string>;
 };
 

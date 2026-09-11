@@ -32,8 +32,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full picture.
 npm install
 npm run build:packages
 npm run dev:server
-npm run seed          # Categories, brands, attributes, products (+ productCount)
-npm run seed:admin   # Create or promote first admin (server/.env ADMIN_*)
+npm run seed          # Fresh catalog + admin + demo customer (see server/.env ADMIN_* / DEMO_CUSTOMER_*)
+npm run seed:admin   # Admin user only (when catalog already exists)
 npm run dev:admin
 npm run dev:client
 ```
