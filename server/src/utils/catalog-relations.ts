@@ -204,6 +204,63 @@ export async function countProductsUsingAttributeSlug(
   });
 }
 
+export async function countProductsForCategory(
+  categoryId: Types.ObjectId
+): Promise<number> {
+  return Product.countDocuments({ categoryId });
+}
+
+export async function countProductsForBrand(
+  brandId: Types.ObjectId
+): Promise<number> {
+  return Product.countDocuments({ brandId });
+}
+
+async function syncStoredProductCount(
+  stored: number,
+  live: number,
+  persist: () => Promise<void>
+): Promise<number> {
+  if (stored !== live) {
+    await persist();
+  }
+  return live;
+}
+
+export async function syncCategoryProductCount(
+  category: { _id: Types.ObjectId; productCount: number; save: () => Promise<unknown> }
+): Promise<number> {
+  const live = await countProductsForCategory(category._id);
+  return syncStoredProductCount(category.productCount, live, async () => {
+    category.productCount = live;
+    await category.save();
+  });
+}
+
+export async function syncBrandProductCount(
+  brand: { _id: Types.ObjectId; productCount: number; save: () => Promise<unknown> }
+): Promise<number> {
+  const live = await countProductsForBrand(brand._id);
+  return syncStoredProductCount(brand.productCount, live, async () => {
+    brand.productCount = live;
+    await brand.save();
+  });
+}
+
+export async function syncAttributeProductCount(
+  attribute: {
+    productCount: number;
+    save: () => Promise<unknown>;
+    slug: string;
+  }
+): Promise<number> {
+  const live = await countProductsUsingAttributeSlug(attribute.slug);
+  return syncStoredProductCount(attribute.productCount, live, async () => {
+    attribute.productCount = live;
+    await attribute.save();
+  });
+}
+
 export async function assertNoProductsUseRemovedAttributeValues(
   slug: string,
   previousValues: string[],

@@ -1,3 +1,4 @@
+import { siteConfig } from "@/config/site";
 import { pathBuilders, routes } from "@/config/routes";
 
 /**
@@ -64,4 +65,9 @@ export function brandEditPath(id: string) {
 
 export function attributeEditPath(id: string) {
   return pathBuilders.editAttribute(id);
+}
+
+export function storefrontProductPath(slug: string): string {
+  const base = siteConfig.storefrontUrl.replace(/\/$/, "");
+  return `${base}/product/${encodeURIComponent(slug)}`;
 }

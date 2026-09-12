@@ -15,7 +15,10 @@ import {
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
 import { addProductPath, productsListPath } from "@/lib/paths";
-import { finishCatalogSave } from "@/lib/catalog-feedback";
+import {
+  catalogSaveButtonLabel,
+  finishCatalogSave,
+} from "@/lib/catalog-feedback";
 import { useToast } from "@/providers/toast-provider";
 import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import {
@@ -35,12 +38,14 @@ type FormState = {
 type BrandCatalogFormProps = {
   assignedProducts?: AssignedProductPreview[];
   initial?: BrandDto;
+  linkedProductCount?: number;
   mode: "add" | "edit";
 };
 
 export function BrandCatalogForm({
   assignedProducts = [],
   initial,
+  linkedProductCount,
   mode,
 }: BrandCatalogFormProps) {
   const router = useRouter();
@@ -220,22 +225,26 @@ export function BrandCatalogForm({
           </div>
         </FormCard>
       </div>
-      {mode === "edit" && initial ? (
-        <AssignedProductsSection
-          addProductHref={addProductPath({ brandId: initial.id })}
-          count={initial.productCount}
-          disabled={disabled}
-          emptyDescription="Add a product and choose this brand in the product form."
-          entityLabel="brand"
-          products={assignedProducts}
-          productsHref={productsListPath({ brandId: initial.id })}
-        />
-      ) : null}
       <CatalogFormFooter
         cancelHref={routes.brands}
         error={formState.error}
         loading={formState.loading}
+        saveLabel={catalogSaveButtonLabel("brand", mode)}
+        showDividerAboveActions={mode === "add"}
       />
+      {mode === "edit" && initial ? (
+        <div className="mt-6 border-t border-surface-line pt-6">
+          <AssignedProductsSection
+            addProductHref={addProductPath({ brandId: initial.id })}
+            count={linkedProductCount ?? initial.productCount}
+            disabled={disabled}
+            emptyDescription="Add a product and choose this brand in the product form."
+            entityLabel="brand"
+            products={assignedProducts}
+            productsHref={productsListPath({ brandId: initial.id })}
+          />
+        </div>
+      ) : null}
     </form>
   );
 }

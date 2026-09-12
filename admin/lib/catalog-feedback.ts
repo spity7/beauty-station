@@ -14,6 +14,14 @@ function displayName(name: string, entity: CatalogEntity): string {
   return trimmed || ENTITY_LABEL[entity];
 }
 
+export function catalogSaveButtonLabel(
+  entity: CatalogEntity,
+  mode: "add" | "edit"
+): string {
+  const label = ENTITY_LABEL[entity];
+  return mode === "add" ? `Create ${label}` : `Update ${label}`;
+}
+
 export function catalogSaveToastMessage(
   entity: CatalogEntity,
   mode: "add" | "edit",

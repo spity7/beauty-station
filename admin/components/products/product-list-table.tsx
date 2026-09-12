@@ -14,7 +14,8 @@ import { ListDeleteConfirmDialog } from "@/components/ui/list-delete-confirm-dia
 import { CrudBusyShield } from "@/components/ui/crud-busy-shield";
 import { StatusBadge } from "@/components/products/status-badge";
 import { routes } from "@/config/routes";
-import { productEditPath } from "@/lib/paths";
+import { productEditPath, storefrontProductPath } from "@/lib/paths";
+import { StorefrontProductViewAction } from "@/components/ui/linked-products-view-action";
 import { finishCatalogDelete } from "@/lib/catalog-feedback";
 import { useToast } from "@/providers/toast-provider";
 import { useCrudBusyLock } from "@/providers/crud-busy-provider";
@@ -428,14 +429,22 @@ export function ProductListTable({
                   </td>
                   <td className="py-4 text-right">
                     <div className="inline-flex items-center gap-1">
-                      <button
-                        aria-label="View product"
-                        className="icon-button hover:bg-brand-50 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={deleting}
-                        type="button"
-                      >
-                        <Icon className="h-4 w-4" name="eye" />
-                      </button>
+                      {product.slug && product.catalogStatus === "published" ? (
+                        <StorefrontProductViewAction
+                          disabled={deleting}
+                          href={storefrontProductPath(product.slug)}
+                        />
+                      ) : (
+                        <button
+                          aria-label="Storefront preview unavailable for draft or archived products"
+                          className="icon-button cursor-not-allowed opacity-40"
+                          disabled
+                          title="Publish to preview on the storefront"
+                          type="button"
+                        >
+                          <Icon className="h-4 w-4" name="store" />
+                        </button>
+                      )}
                       {deleting ? (
                         <button
                           aria-label="Edit product"

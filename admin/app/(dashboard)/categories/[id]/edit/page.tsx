@@ -23,13 +23,12 @@ export default async function EditCategoryPage({
   let assignedProducts: Awaited<
     ReturnType<typeof fetchAssignedProductsForCategory>
   >["products"] = [];
+  let linkedProductCount = 0;
 
   try {
     category = await getCategoryApi(id);
-    if (category.productCount > 0) {
-      ({ products: assignedProducts } =
-        await fetchAssignedProductsForCategory(id));
-    }
+    ({ products: assignedProducts, total: linkedProductCount } =
+      await fetchAssignedProductsForCategory(id));
   } catch {
     notFound();
   }
@@ -44,6 +43,7 @@ export default async function EditCategoryPage({
       <CategoryCatalogForm
         assignedProducts={assignedProducts}
         initial={category}
+        linkedProductCount={linkedProductCount}
         mode="edit"
       />
     </>

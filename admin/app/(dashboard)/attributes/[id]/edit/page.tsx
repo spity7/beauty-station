@@ -23,14 +23,12 @@ export default async function EditAttributePage({
   let assignedProducts: Awaited<
     ReturnType<typeof fetchAssignedProductsForAttribute>
   >["products"] = [];
+  let linkedProductCount = 0;
 
   try {
     attribute = await getAttributeApi(id);
-    if (attribute.productCount > 0) {
-      ({ products: assignedProducts } = await fetchAssignedProductsForAttribute(
-        attribute.slug
-      ));
-    }
+    ({ products: assignedProducts, total: linkedProductCount } =
+      await fetchAssignedProductsForAttribute(attribute.slug));
   } catch {
     notFound();
   }
@@ -45,6 +43,7 @@ export default async function EditAttributePage({
       <AttributeCatalogForm
         assignedProducts={assignedProducts}
         initial={attribute}
+        linkedProductCount={linkedProductCount}
         mode="edit"
       />
     </>

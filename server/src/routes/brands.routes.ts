@@ -8,7 +8,10 @@ import { AppError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { Brand } from "../models/Brand.js";
 import { Product } from "../models/Product.js";
-import { syncProductBrandNames } from "../utils/catalog-relations.js";
+import {
+  syncBrandProductCount,
+  syncProductBrandNames,
+} from "../utils/catalog-relations.js";
 import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toBrandDto } from "../utils/serializers.js";
@@ -45,6 +48,8 @@ brandsRouter.get(
       Brand.countDocuments(filter),
     ]);
 
+    await Promise.all(items.map((brand) => syncBrandProductCount(brand)));
+
     res.json({
       data: items.map(toBrandDto),
       total,
@@ -62,6 +67,7 @@ brandsRouter.get(
     if (!brand) {
       throw new AppError(404, "Brand not found");
     }
+    await syncBrandProductCount(brand);
     res.json(toBrandDto(brand));
   })
 );
@@ -133,7 +139,14 @@ brandsRouter.patch(
       brand.status = payload.status;
     }
 
-    await brand.save();
+    try {
+      await brand.save();
+    } catch (error) {
+      if (isUniqueKeyError(error)) {
+        throw new AppError(409, "Brand slug already exists");
+      }
+      throw error;
+    }
 
     if (payload.name && payload.name !== previousName) {
       await syncProductBrandNames(brand._id, brand.name);

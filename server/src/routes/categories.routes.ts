@@ -8,7 +8,10 @@ import { AppError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { Category } from "../models/Category.js";
 import { Product } from "../models/Product.js";
-import { syncProductCategoryNames } from "../utils/catalog-relations.js";
+import {
+  syncCategoryProductCount,
+  syncProductCategoryNames,
+} from "../utils/catalog-relations.js";
 import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isUniqueKeyError, toCategoryDto } from "../utils/serializers.js";
@@ -48,6 +51,10 @@ categoriesRouter.get(
       Category.countDocuments(filter),
     ]);
 
+    await Promise.all(
+      items.map((category) => syncCategoryProductCount(category))
+    );
+
     res.json({
       data: items.map(toCategoryDto),
       total,
@@ -65,6 +72,7 @@ categoriesRouter.get(
     if (!category) {
       throw new AppError(404, "Category not found");
     }
+    await syncCategoryProductCount(category);
     res.json(toCategoryDto(category));
   })
 );
@@ -121,7 +129,15 @@ categoriesRouter.patch(
     }
 
     assertCategoryHasImage(category.image);
-    await category.save();
+
+    try {
+      await category.save();
+    } catch (error) {
+      if (isUniqueKeyError(error)) {
+        throw new AppError(409, "Category slug already exists");
+      }
+      throw error;
+    }
 
     if (payload.name && payload.name !== previousName) {
       await syncProductCategoryNames(category._id, category.name);

@@ -18,7 +18,10 @@ import {
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
 import { productsListPath } from "@/lib/paths";
-import { finishCatalogSave } from "@/lib/catalog-feedback";
+import {
+  catalogSaveButtonLabel,
+  finishCatalogSave,
+} from "@/lib/catalog-feedback";
 import { useToast } from "@/providers/toast-provider";
 import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import { cn } from "@/utils/cn";
@@ -33,12 +36,14 @@ type FormState = {
 type AttributeCatalogFormProps = {
   assignedProducts?: AssignedProductPreview[];
   initial?: AttributeDto;
+  linkedProductCount?: number;
   mode: "add" | "edit";
 };
 
 export function AttributeCatalogForm({
   assignedProducts = [],
   initial,
+  linkedProductCount,
   mode,
 }: AttributeCatalogFormProps) {
   const router = useRouter();
@@ -154,7 +159,6 @@ export function AttributeCatalogForm({
           <div className="mt-4">
             <ControlledTextarea
               disabled={disabled}
-              help="Optional internal note for admins."
               label="Description"
               minRows={4}
               onChange={setDescription}
@@ -192,23 +196,27 @@ export function AttributeCatalogForm({
           </FormCard>
         </aside>
       </div>
-      {mode === "edit" && initial ? (
-        <AssignedProductsSection
-          addProductHref={routes.addProduct}
-          count={initial.productCount}
-          disabled={disabled}
-          emptyDescription="Products will appear here once this attribute is set on a product."
-          entityLabel="attribute"
-          products={assignedProducts}
-          productsHref={productsListPath({ attributeSlug: initial.slug })}
-          title="Product usage"
-        />
-      ) : null}
       <CatalogFormFooter
         cancelHref={routes.attributes}
         error={formState.error}
         loading={formState.loading}
+        saveLabel={catalogSaveButtonLabel("attribute", mode)}
+        showDividerAboveActions={mode === "add"}
       />
+      {mode === "edit" && initial ? (
+        <div className="mt-6 border-t border-surface-line pt-6">
+          <AssignedProductsSection
+            addProductHref={routes.addProduct}
+            count={linkedProductCount ?? initial.productCount}
+            disabled={disabled}
+            emptyDescription="Products will appear here once this attribute is set on a product."
+            entityLabel="attribute"
+            products={assignedProducts}
+            productsHref={productsListPath({ attributeSlug: initial.slug })}
+            title="Product usage"
+          />
+        </div>
+      ) : null}
     </form>
   );
 }

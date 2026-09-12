@@ -40,6 +40,7 @@ export function mapProductDto(product: ProductDto): Product & { id: string } {
     name: product.name,
     price: product.price,
     sku: product.sku,
+    slug: product.slug,
     status: toAdminProductStatus(product),
     stock: product.stock,
   };
@@ -89,9 +90,10 @@ export function mapAttributeDto(attribute: AttributeDto): Attribute {
 
 export function mapAttributeRows(
   attributes: AttributeDto[]
-): Array<Attribute & { id: string }> {
+): Array<Attribute & { id: string; slug: string }> {
   return attributes.map((attribute) => ({
     ...mapAttributeDto(attribute),
     id: attribute.id,
+    slug: attribute.slug,
   }));
 }

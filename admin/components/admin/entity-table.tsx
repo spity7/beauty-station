@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/layout/icon";
 import {
@@ -8,6 +9,7 @@ import {
   ListFilterSelect,
   ListSearchField,
 } from "@/components/ui/list-filter-controls";
+import { LinkedProductsViewAction } from "@/components/ui/linked-products-view-action";
 import { ListDeleteConfirmDialog } from "@/components/ui/list-delete-confirm-dialog";
 import { CrudBusyShield } from "@/components/ui/crud-busy-shield";
 import { cn } from "@/utils/cn";
@@ -45,10 +47,13 @@ type EntityTableProps<T extends { id: string }> = {
   getRowLabel?: (row: T) => string;
   items: T[];
   onDelete?: (ids: string[]) => Promise<void>;
+  resolvePreflightDeleteError?: (ids: string[]) => string | null;
   searchLabel: string;
   searchPlaceholder: string;
   searchText: (row: T) => string;
   singularName: string;
+  viewHref?: string | ((row: T) => string);
+  viewLinkedProductCount?: (row: T) => number;
 };
 
 type SortState = {
@@ -66,11 +71,15 @@ export function EntityTable<T extends { id: string }>({
   getRowLabel,
   items,
   onDelete,
+  resolvePreflightDeleteError,
   searchLabel,
   searchPlaceholder,
   searchText,
   singularName,
+  viewHref,
+  viewLinkedProductCount,
 }: EntityTableProps<T>) {
+  const router = useRouter();
   const sortableColumns = columns.filter((column) => column.sortValue);
   const hideableColumns = columns.filter((column) => column.hideable);
   const [query, setQuery] = useState("");
@@ -188,6 +197,16 @@ export function EntityTable<T extends { id: string }>({
     });
   }
 
+  function openDeleteConfirm() {
+    setDeleteError(null);
+    setConfirmOpen(true);
+  }
+
+  function closeDeleteConfirm() {
+    setDeleteError(null);
+    setConfirmOpen(false);
+  }
+
   async function confirmDelete() {
     const ids = Array.from(selected);
     if (onDelete) {
@@ -197,11 +216,12 @@ export function EntityTable<T extends { id: string }>({
         await onDelete(ids);
         setRows((current) => current.filter((row) => !selected.has(row.id)));
         setSelected(new Set());
-        setConfirmOpen(false);
+        closeDeleteConfirm();
       } catch (error) {
         setDeleteError(
           error instanceof Error ? error.message : "Delete failed"
         );
+        router.refresh();
       } finally {
         setDeleting(false);
       }
@@ -209,11 +229,28 @@ export function EntityTable<T extends { id: string }>({
     }
     setRows((current) => current.filter((row) => !selected.has(row.id)));
     setSelected(new Set());
-    setConfirmOpen(false);
+    closeDeleteConfirm();
   }
+
+  const selectedIds = useMemo(() => Array.from(selected), [selected]);
+
+  const preflightDeleteError =
+    confirmOpen && resolvePreflightDeleteError
+      ? resolvePreflightDeleteError(selectedIds)
+      : null;
+
+  const dialogDeleteError = deleteError ?? preflightDeleteError;
+  const deleteBlocked = Boolean(preflightDeleteError);
 
   function resolveEditHref(row: T): string {
     return typeof editHref === "function" ? editHref(row) : editHref;
+  }
+
+  function resolveViewHref(row: T): string | null {
+    if (!viewHref) {
+      return null;
+    }
+    return typeof viewHref === "function" ? viewHref(row) : viewHref;
   }
 
   function isColumnHidden(column: EntityColumn<T>) {
@@ -336,7 +373,7 @@ export function EntityTable<T extends { id: string }>({
           <button
             className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-base bg-danger-500 px-4 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={selected.size === 0 || deleting}
-            onClick={() => setConfirmOpen(true)}
+            onClick={openDeleteConfirm}
             type="button"
           >
             <Icon className="h-4 w-4" name="trash-2" />
@@ -422,14 +459,13 @@ export function EntityTable<T extends { id: string }>({
                   })}
                   <td className="py-4 text-right">
                     <div className="inline-flex items-center gap-1">
-                      <button
-                        aria-label={`View ${singularName}`}
-                        className="icon-button hover:bg-brand-50 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={deleting}
-                        type="button"
-                      >
-                        <Icon className="h-4 w-4" name="eye" />
-                      </button>
+                      {resolveViewHref(row) ? (
+                        <LinkedProductsViewAction
+                          count={viewLinkedProductCount?.(row) ?? 0}
+                          disabled={deleting}
+                          href={resolveViewHref(row)!}
+                        />
+                      ) : null}
                       {deleting ? (
                         <button
                           aria-label={`Edit ${singularName}`}
@@ -454,7 +490,7 @@ export function EntityTable<T extends { id: string }>({
                         disabled={deleting}
                         onClick={() => {
                           setSelected(new Set([row.id]));
-                          setConfirmOpen(true);
+                          openDeleteConfirm();
                         }}
                         type="button"
                       >
@@ -502,12 +538,13 @@ export function EntityTable<T extends { id: string }>({
           count={selected.size}
           deleteMessage={deleteMessage}
           entityName={singularName}
-          error={deleteError}
+          error={dialogDeleteError}
           itemLabels={selectedLabels}
           loading={deleting}
-          onClose={() => setConfirmOpen(false)}
+          onClose={closeDeleteConfirm}
           onConfirm={() => void confirmDelete()}
           open={confirmOpen}
+          deleteBlocked={deleteBlocked}
         />
       ) : null}
     </section>

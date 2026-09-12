@@ -12,6 +12,7 @@ const PREVIEW_LIMIT = 5;
 
 type ListDeleteConfirmDialogProps = {
   count: number;
+  deleteBlocked?: boolean;
   deleteMessage?: string;
   entityName: string;
   error?: string | null;
@@ -24,6 +25,7 @@ type ListDeleteConfirmDialogProps = {
 
 export function ListDeleteConfirmDialog({
   count,
+  deleteBlocked = false,
   deleteMessage,
   entityName,
   error = null,
@@ -130,7 +132,7 @@ export function ListDeleteConfirmDialog({
           </button>
           <button
             className="h-11 min-w-[112px] rounded-base bg-danger-500 px-5 text-[14px] font-semibold text-white transition-colors hover:bg-danger-600 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={loading}
+            disabled={loading || deleteBlocked}
             onClick={onConfirm}
             type="button"
           >

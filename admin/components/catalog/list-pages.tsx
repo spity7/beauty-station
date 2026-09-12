@@ -13,6 +13,7 @@ import {
   categoryEditPath,
   brandEditPath,
   attributeEditPath,
+  productsListPath,
 } from "@/lib/paths";
 import type {
   Attribute,
@@ -22,6 +23,7 @@ import type {
 } from "@/data/admin/catalog";
 import { cn } from "@/utils/cn";
 import { finishCatalogDelete } from "@/lib/catalog-feedback";
+import { resolveCatalogReferenceDeleteError } from "@/lib/catalog-delete-copy";
 import { useToast } from "@/providers/toast-provider";
 import {
   deleteBrandApi,
@@ -31,7 +33,7 @@ import {
 
 type CategoryRow = Category & { id: string };
 type BrandRow = Brand & { id: string };
-type AttributeRow = Attribute & { id: string };
+type AttributeRow = Attribute & { id: string; slug: string };
 type CustomerRow = Customer & { id: string };
 
 const statusClass = {
@@ -110,6 +112,9 @@ export function CategoryListTable({
           showToast,
         });
       }}
+      resolvePreflightDeleteError={(ids) =>
+        resolveCatalogReferenceDeleteError("category", ids, rows)
+      }
       filterOptions={[
         { label: "All", match: () => true, value: "all" },
         {
@@ -128,6 +133,8 @@ export function CategoryListTable({
       searchPlaceholder="Search categories"
       searchText={(category) => category.name}
       singularName="category"
+      viewHref={(row) => productsListPath({ categoryId: row.id })}
+      viewLinkedProductCount={(row) => row.count}
     />
   );
 }
@@ -209,6 +216,9 @@ export function BrandListTable({
           showToast,
         });
       }}
+      resolvePreflightDeleteError={(ids) =>
+        resolveCatalogReferenceDeleteError("brand", ids, rows)
+      }
       filterOptions={[
         { label: "All", match: () => true, value: "all" },
         {
@@ -232,6 +242,8 @@ export function BrandListTable({
       searchPlaceholder="Search brands"
       searchText={(brand) => `${brand.name} ${brand.website}`}
       singularName="brand"
+      viewHref={(row) => productsListPath({ brandId: row.id })}
+      viewLinkedProductCount={(row) => row.count}
     />
   );
 }
@@ -243,7 +255,7 @@ export function AttributeListTable({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const rows = attributes;
+  const rows: AttributeRow[] = attributes;
   const columns: EntityColumn<AttributeRow>[] = [
     {
       key: "attribute",
@@ -305,6 +317,9 @@ export function AttributeListTable({
           showToast,
         });
       }}
+      resolvePreflightDeleteError={(ids) =>
+        resolveCatalogReferenceDeleteError("attribute", ids, rows)
+      }
       filterGroups={[
         {
           ariaLabel: "Filter by status",
@@ -357,6 +372,8 @@ export function AttributeListTable({
         `${attribute.name} ${attribute.type} ${attribute.values.join(" ")}`
       }
       singularName="attribute"
+      viewHref={(row) => productsListPath({ attributeSlug: row.slug })}
+      viewLinkedProductCount={(row) => row.products}
     />
   );
 }

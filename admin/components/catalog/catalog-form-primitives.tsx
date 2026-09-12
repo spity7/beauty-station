@@ -332,7 +332,7 @@ function parseCatalogFormError(message: string | null): ParsedCatalogFormError {
 
   if (normalized.includes("category slug already exists")) {
     return {
-      summary: "This category name is already taken.",
+      summary: "This category name is already in use.",
       fieldErrors: { name: "Already in use" },
     };
   }
@@ -463,14 +463,21 @@ export function CatalogFormFooter({
   error,
   loading,
   saveLabel = "Save",
+  showDividerAboveActions = false,
 }: {
   cancelHref: string;
   error: string | null;
   loading: boolean;
   saveLabel?: string;
+  showDividerAboveActions?: boolean;
 }) {
   return (
-    <footer className="mt-6 border-t border-surface-line pt-5">
+    <footer
+      className={cn(
+        "mt-6",
+        showDividerAboveActions && "border-t border-surface-line pt-5"
+      )}
+    >
       {loading ? (
         <p className="mb-4 text-[13px] font-medium text-brand-600">
           Saving changes…
@@ -502,7 +509,7 @@ export function CatalogFormActions({
   saveLabel?: string;
 }) {
   return (
-    <div className="mt-6 flex items-center justify-end gap-3 border-t border-surface-line pt-5">
+    <div className="mt-6 flex items-center justify-end gap-3">
       <CatalogFormActionsInner
         cancelHref={cancelHref}
         loading={loading}
@@ -746,13 +753,7 @@ export function ThumbnailUploadCard({
   const isRemote = previewUrl.startsWith("http");
   const isBlobPreview = previewUrl.startsWith("blob:");
 
-  const helperText =
-    help ??
-    (previewState === "pending"
-      ? "Preview only — the file uploads to storage when you save."
-      : previewState === "saved"
-        ? "Drag a new image here or click to replace. Uploads on save."
-        : "Drag and drop a square PNG, JPG, or WebP image, or click to browse.");
+  const caption = disabled ? "Saving…" : (error ?? help);
 
   const { isDragging, dropZoneProps } = useCatalogImageDropHandlers({
     disabled,
@@ -814,14 +815,16 @@ export function ThumbnailUploadCard({
             type="file"
           />
         </label>
-        <p
-          className={cn(
-            "mt-4 text-[12px]",
-            error ? "text-error-600" : "text-ink-400"
-          )}
-        >
-          {disabled ? "Saving…" : error ?? helperText}
-        </p>
+        {caption ? (
+          <p
+            className={cn(
+              "mt-4 text-[12px]",
+              error ? "text-error-600" : "text-ink-400"
+            )}
+          >
+            {caption}
+          </p>
+        ) : null}
         {hasImage && onClear && !required ? (
           <button
             className="mt-4 inline-flex h-9 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
@@ -1151,7 +1154,12 @@ export function AssignedProductsSection({
   }, [listedCount, count]);
 
   return (
-    <section className="rounded-card border border-surface-line bg-surface-card p-4 shadow-card">
+    <section
+      className={cn(
+        "w-full rounded-card border border-surface-line bg-surface-card p-4 shadow-card",
+        "lg:mx-auto lg:max-w-2xl"
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-[15px] font-semibold text-ink-900">{title}</h2>

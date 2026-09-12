@@ -33,7 +33,10 @@ export {
 } from "@/lib/product-form-attributes";
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
-import { finishCatalogSave } from "@/lib/catalog-feedback";
+import {
+  catalogSaveButtonLabel,
+  finishCatalogSave,
+} from "@/lib/catalog-feedback";
 import {
   getPublishLinkError,
   productFormPickLabel,
@@ -560,6 +563,8 @@ export function ProductCatalogForm({
         cancelHref={routes.products}
         error={formState.error}
         loading={formState.loading}
+        saveLabel={catalogSaveButtonLabel("product", mode)}
+        showDividerAboveActions
       />
     </form>
   );

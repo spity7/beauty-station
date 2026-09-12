@@ -11,6 +11,7 @@ import { Product } from "../models/Product.js";
 import {
   assertNoProductsUseRemovedAttributeValues,
   countProductsUsingAttributeSlug,
+  syncAttributeProductCount,
 } from "../utils/catalog-relations.js";
 import { catalogReadRateLimiter } from "../middleware/rateLimit.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -40,6 +41,10 @@ attributesRouter.get(
       Attribute.countDocuments(filter),
     ]);
 
+    await Promise.all(
+      items.map((attribute) => syncAttributeProductCount(attribute))
+    );
+
     res.json({
       data: items.map(toAttributeDto),
       total,
@@ -57,6 +62,7 @@ attributesRouter.get(
     if (!attribute) {
       throw new AppError(404, "Attribute not found");
     }
+    await syncAttributeProductCount(attribute);
     res.json(toAttributeDto(attribute));
   })
 );
@@ -124,7 +130,14 @@ attributesRouter.patch(
       attribute.values = payload.values;
     }
 
-    await attribute.save();
+    try {
+      await attribute.save();
+    } catch (error) {
+      if (isUniqueKeyError(error)) {
+        throw new AppError(409, "Attribute slug already exists");
+      }
+      throw error;
+    }
 
     if (payload.name && previousSlug !== attribute.slug) {
       await Product.updateMany(

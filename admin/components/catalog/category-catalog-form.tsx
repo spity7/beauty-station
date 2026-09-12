@@ -21,7 +21,10 @@ import {
 import { FormCard } from "@/components/forms/admin-form-primitives";
 import { routes } from "@/config/routes";
 import { addProductPath, productsListPath } from "@/lib/paths";
-import { finishCatalogSave } from "@/lib/catalog-feedback";
+import {
+  catalogSaveButtonLabel,
+  finishCatalogSave,
+} from "@/lib/catalog-feedback";
 import { useCatalogFormLeaveGuard } from "@/components/catalog/use-catalog-form-leave-guard";
 import { useToast } from "@/providers/toast-provider";
 import { createCategoryApi, updateCategoryApi } from "@platform/api-client";
@@ -35,6 +38,7 @@ type FormState = {
 type CategoryCatalogFormProps = {
   assignedProducts?: AssignedProductPreview[];
   initial?: CategoryDto;
+  linkedProductCount?: number;
   mode: "add" | "edit";
 };
 
@@ -48,6 +52,7 @@ function hasCategoryImage(
 export function CategoryCatalogForm({
   assignedProducts = [],
   initial,
+  linkedProductCount,
   mode,
 }: CategoryCatalogFormProps) {
   const router = useRouter();
@@ -205,29 +210,32 @@ export function CategoryCatalogForm({
           alt={name || "Category thumbnail"}
           disabled={disabled}
           error={fieldErrors.image}
-          help="A category thumbnail is required. Drag and drop a square PNG, JPG, or WebP image, or click to browse."
           onUpload={handleImageUpload}
           previewState={previewState}
           previewUrl={previewUrl}
           required
         />
       </div>
-      {mode === "edit" && initial ? (
-        <AssignedProductsSection
-          addProductHref={addProductPath({ categoryId: initial.id })}
-          count={initial.productCount}
-          disabled={disabled}
-          emptyDescription="Add a product and choose this category in the product form."
-          entityLabel="category"
-          products={assignedProducts}
-          productsHref={productsListPath({ categoryId: initial.id })}
-        />
-      ) : null}
       <CatalogFormFooter
         cancelHref={routes.categories}
         error={formState.error}
         loading={formState.loading}
+        saveLabel={catalogSaveButtonLabel("category", mode)}
+        showDividerAboveActions={mode === "add"}
       />
+      {mode === "edit" && initial ? (
+        <div className="mt-6 border-t border-surface-line pt-6">
+          <AssignedProductsSection
+            addProductHref={addProductPath({ categoryId: initial.id })}
+            count={linkedProductCount ?? initial.productCount}
+            disabled={disabled}
+            emptyDescription="Add a product and choose this category in the product form."
+            entityLabel="category"
+            products={assignedProducts}
+            productsHref={productsListPath({ categoryId: initial.id })}
+          />
+        </div>
+      ) : null}
     </form>
   );
 }

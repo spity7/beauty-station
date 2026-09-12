@@ -23,13 +23,12 @@ export default async function EditBrandPage({
   let assignedProducts: Awaited<
     ReturnType<typeof fetchAssignedProductsForBrand>
   >["products"] = [];
+  let linkedProductCount = 0;
 
   try {
     brand = await getBrandApi(id);
-    if (brand.productCount > 0) {
-      ({ products: assignedProducts } =
-        await fetchAssignedProductsForBrand(id));
-    }
+    ({ products: assignedProducts, total: linkedProductCount } =
+      await fetchAssignedProductsForBrand(id));
   } catch {
     notFound();
   }
@@ -44,6 +43,7 @@ export default async function EditBrandPage({
       <BrandCatalogForm
         assignedProducts={assignedProducts}
         initial={brand}
+        linkedProductCount={linkedProductCount}
         mode="edit"
       />
     </>
