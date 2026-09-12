@@ -7,7 +7,7 @@ import Tooltip from "@/components/common/ui/Tooltip";
 import useCopyToClipboard from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
 import StorefrontProductSearchForm from "@/components/store/StorefrontProductSearchForm";
-import { buildShopCatalogHref } from "@/lib/shop-query";
+import { buildShopCatalogHref, createShopCatalogQuery } from "@/lib/shop-query";
 
 const POPULAR_SEARCHES = [
   "Fashion",
@@ -146,9 +146,11 @@ export default function SearchDropdown() {
             <div className="rbt-search-list-wrapper rbt-tag-list rbt-tag-list-rounded-lg">
               {POPULAR_SEARCHES.map((keyword, index) => (
                 <Link
-                key={`${keyword}-${index}`}
-                href={buildShopCatalogHref({ page: 1, search: keyword })}
-              >
+                  key={`${keyword}-${index}`}
+                  href={buildShopCatalogHref(
+                    createShopCatalogQuery({ page: 1, search: keyword })
+                  )}
+                >
                   {keyword}
                 </Link>
               ))}

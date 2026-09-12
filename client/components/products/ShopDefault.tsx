@@ -1,9 +1,11 @@
 "use client";
 import { WaveFatIcon } from "../svg-icons";
 import Image from "next/image";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useShopCatalogNavigation } from "@/hooks/useShopCatalogNavigation";
 import {
+  createShopCatalogQuery,
+  SHOP_CATALOG_PAGE_SIZE_OPTIONS,
   sortApiValueToLabel,
   sortLabelToApiValue,
   type ShopCatalogQuery,
@@ -23,6 +25,7 @@ import DropdownSelect from "../common/select/DropdownSelect";
 import ShopPagination from "./ShopPagination";
 import ShopServerPagination from "./ShopServerPagination";
 import FilterMeta from "./FilterMeta";
+import ShopServerFilterMeta from "./ShopServerFilterMeta";
 import Sidebar from "./Sidebar";
 import LayoutHandler from "./LayoutHandler";
 import SidebarScrollable from "./SidebarScrollable";
@@ -70,6 +73,7 @@ export default function ShopDefault({
   showQuantityBadge = false,
   cardVariant = "default",
   catalogFilters,
+  catalogLoadError = false,
   catalogPagination,
   catalogQuery,
   products,
@@ -91,6 +95,7 @@ export default function ShopDefault({
   showQuantityBadge?: boolean;
   cardVariant?: CardVariant;
   catalogFilters?: ShopCatalogFilters;
+  catalogLoadError?: boolean;
   catalogPagination?: ShopCatalogPagination;
   catalogQuery?: ShopCatalogQuery;
   products?: Product[];
@@ -98,10 +103,20 @@ export default function ShopDefault({
   detailsPageUrl?: string;
   initialFilters?: ShopInitialFilters;
 }) {
-  const isServerCatalog = Boolean(catalogPagination && catalogQuery);
+  const isServerCatalog = Boolean(catalogQuery && !catalogLoadError);
+  const resolvedCatalogQuery =
+    catalogQuery ?? createShopCatalogQuery({ page: 1 });
   const [searchValue, setSearchValue] = useState(initialFilters?.search ?? "");
-  const { navigate, clearFilters } = useShopCatalogNavigation(
-    catalogQuery ?? { page: 1 }
+  const { navigate, clearFilters } =
+    useShopCatalogNavigation(resolvedCatalogQuery);
+
+  useEffect(() => {
+    setSearchValue(catalogQuery?.search ?? "");
+  }, [catalogQuery?.search]);
+
+  const pageSizeOptions = useMemo(
+    () => SHOP_CATALOG_PAGE_SIZE_OPTIONS.map((size) => `${size} Items`),
+    []
   );
   const { state, dispatch, visibleProducts, getFilterCount, isLoadMore } =
     useShopState({
@@ -315,20 +330,16 @@ export default function ShopDefault({
                       <h6 className="rbt-shop-tools-title">Show :</h6>
                       <div className="rbt-modern-select rbt-shop-view-sort-select-two">
                         <DropdownSelect
-                          selected={`${state.itemPerPage} Items`}
-                          options={[
-                            "15 Items",
-                            "12 Items",
-                            "9 Items",
-                            "6 Items",
-                            "3 Items",
-                          ]}
-                          onChange={(value) =>
-                            setItemPerPage(
-                              Number(value.split(" ")[0]),
-                              dispatch
-                            )
-                          }
+                          selected={`${isServerCatalog ? resolvedCatalogQuery.limit : state.itemPerPage} Items`}
+                          options={pageSizeOptions}
+                          onChange={(value) => {
+                            const nextLimit = Number(value.split(" ")[0]);
+                            if (isServerCatalog) {
+                              navigate({ limit: nextLimit });
+                              return;
+                            }
+                            setItemPerPage(nextLimit, dispatch);
+                          }}
                         />
                       </div>
                     </div>
@@ -353,7 +364,18 @@ export default function ShopDefault({
                     </form>
                   </div>
                 </div>
-                {!isServerCatalog ? (
+                {isServerCatalog && catalogFilters ? (
+                  <div className="rbt-shop-tools-wrapper">
+                    <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper">
+                      <ShopServerFilterMeta
+                        catalogFilters={catalogFilters}
+                        catalogQuery={resolvedCatalogQuery}
+                        onClearAll={clearFilters}
+                        onNavigate={navigate}
+                      />
+                    </div>
+                  </div>
+                ) : !isServerCatalog ? (
                   <div className="rbt-shop-tools-wrapper">
                     <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper">
                       <FilterMeta state={state} dispatch={dispatch} />
@@ -364,7 +386,17 @@ export default function ShopDefault({
             </div>
             {/* Start Card Area */}
             <div className={`row row--12 ${hasCardBorder ? "mt--24" : ""}`}>
-              {hasNoFilteredItems ? (
+              {catalogLoadError ? (
+                <div className="col-12 mt--24">
+                  <div className="text-center rbt-radius p--24">
+                    <h6 className="mb--8">Unable to load products</h6>
+                    <p className="rbt-text-color-body mb--16">
+                      The product catalog could not be loaded. Make sure the API
+                      is running, then refresh or adjust your filters.
+                    </p>
+                  </div>
+                </div>
+              ) : hasNoFilteredItems ? (
                 <div className="col-12 mt--24">
                   <div className="text-center rbt-radius p--24">
                     <h6 className="mb--8">No items found</h6>

@@ -3,7 +3,6 @@ import Breadcrumb from "@/components/products/Breadcrumb";
 import Categories from "@/components/products/Categories";
 import ShopDefault from "@/components/products/ShopDefault";
 import { StorefrontChrome } from "@/components/site/StorefrontChrome";
-import { cosmeticProducts } from "@/data/products/beauty";
 import { mapProductDtosToStorefront } from "@/lib/mappers/product";
 import {
   parseShopCatalogQuery,
@@ -27,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 type ShopProductLoadResult = {
+  catalogLoadError?: boolean;
   catalogPagination?: ShopCatalogPagination;
   products: Product[];
 };
@@ -38,23 +38,20 @@ async function loadShopProducts(
     const response = await fetchProducts(
       shopCatalogQueryToProductParams(query)
     );
-    if (response.data.length > 0 || response.total > 0) {
-      return {
-        products: mapProductDtosToStorefront(response.data),
-        catalogPagination: {
-          limit: response.limit,
-          page: response.page,
-          total: response.total,
-        },
-      };
-    }
+    return {
+      products: mapProductDtosToStorefront(response.data),
+      catalogPagination: {
+        limit: response.limit,
+        page: response.page,
+        total: response.total,
+      },
+    };
   } catch {
-    // fall through to static data when API is unavailable
+    return {
+      products: [],
+      catalogLoadError: true,
+    };
   }
-
-  return {
-    products: cosmeticProducts,
-  };
 }
 
 export default async function ShopPage({
@@ -64,11 +61,15 @@ export default async function ShopPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const catalogQuery = parseShopCatalogQuery(resolvedSearchParams);
-  const [{ products, catalogPagination }, catalogFilters] = await Promise.all([
-    loadShopProducts(catalogQuery),
-    loadShopCatalogFilters(),
-  ]);
-  const initialFilters = resolveShopInitialFilters(catalogFilters, catalogQuery);
+  const [{ products, catalogPagination, catalogLoadError }, catalogFilters] =
+    await Promise.all([
+      loadShopProducts(catalogQuery),
+      loadShopCatalogFilters(),
+    ]);
+  const initialFilters = resolveShopInitialFilters(
+    catalogFilters,
+    catalogQuery
+  );
 
   return (
     <StorefrontChrome>
@@ -83,6 +84,7 @@ export default async function ShopPage({
       <ShopDefault
         cardVariant="standard"
         catalogFilters={catalogFilters}
+        catalogLoadError={catalogLoadError}
         catalogPagination={catalogPagination}
         catalogQuery={catalogQuery}
         detailsPageUrl="/product"

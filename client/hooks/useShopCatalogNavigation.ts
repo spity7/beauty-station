@@ -2,10 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import {
-  buildShopCatalogHref,
-  type ShopCatalogQuery,
-} from "@/lib/shop-query";
+import { buildShopCatalogHref, type ShopCatalogQuery } from "@/lib/shop-query";
 
 export function useShopCatalogNavigation(initialQuery: ShopCatalogQuery) {
   const router = useRouter();
@@ -23,7 +20,8 @@ export function useShopCatalogNavigation(initialQuery: ShopCatalogQuery) {
         patch.search !== undefined ||
         patch.sort !== undefined ||
         patch.minPrice !== undefined ||
-        patch.maxPrice !== undefined
+        patch.maxPrice !== undefined ||
+        patch.limit !== undefined
       ) {
         nextQuery.page = 1;
       }
@@ -34,8 +32,13 @@ export function useShopCatalogNavigation(initialQuery: ShopCatalogQuery) {
   );
 
   const clearFilters = useCallback(() => {
-    router.push("/shop");
-  }, [router]);
+    router.push(
+      buildShopCatalogHref({
+        page: 1,
+        limit: initialQuery.limit,
+      })
+    );
+  }, [initialQuery.limit, router]);
 
   return { navigate, clearFilters };
 }

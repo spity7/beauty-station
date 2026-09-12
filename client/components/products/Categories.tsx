@@ -1,18 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories14 } from "@/data/categories";
 import {
+  buildFallbackStorefrontCategories,
   loadPublishedCategories,
   type StorefrontCategoryItem,
 } from "@/lib/catalog";
 
 function toFallbackCategories(): StorefrontCategoryItem[] {
-  return categories14.map((category, index) => ({
-    id: String(index),
-    name: category.title ?? "Category",
-    image: category.imgSrc ?? "",
-    href: "/shop-by-categories",
-  }));
+  return buildFallbackStorefrontCategories().slice(0, 12);
 }
 
 async function loadCategories(): Promise<StorefrontCategoryItem[]> {

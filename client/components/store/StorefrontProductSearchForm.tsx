@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { buildShopCatalogHref } from "@/lib/shop-query";
+import { buildShopCatalogHref, createShopCatalogQuery } from "@/lib/shop-query";
 
 type StorefrontProductSearchFormProps = {
   className?: string;
@@ -24,9 +24,12 @@ export default function StorefrontProductSearchForm({
     event.preventDefault();
     const search = query.trim();
     router.push(
-      search
-        ? buildShopCatalogHref({ page: 1, search })
-        : buildShopCatalogHref({ page: 1 })
+      buildShopCatalogHref(
+        createShopCatalogQuery({
+          page: 1,
+          search: search || undefined,
+        })
+      )
     );
     onSubmitted?.();
   }

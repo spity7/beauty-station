@@ -44,7 +44,7 @@ const fallbackBrands: ShopBrandFilterOption[] = [
 ];
 
 export default function FilterByBrand({
-  brands = fallbackBrands,
+  brands,
   selectedItems,
   selectedId,
   serverMode = false,
@@ -60,7 +60,20 @@ export default function FilterByBrand({
   onSelectId?: (id: string | undefined) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
-  const items = brands.length > 0 ? brands : fallbackBrands;
+  const source = brands ?? [];
+  const items = serverMode
+    ? source
+    : source.length > 0
+      ? source
+      : fallbackBrands;
+
+  if (items.length === 0) {
+    return (
+      <li className="rbt-text-color-body px--8 py--8">
+        {serverMode ? "No brands available." : "No brands to filter by."}
+      </li>
+    );
+  }
 
   return (
     <>

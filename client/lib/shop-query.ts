@@ -1,7 +1,12 @@
 import type { ProductSort } from "@platform/shared";
 
+export const DEFAULT_SHOP_CATALOG_LIMIT = 15;
+
+export const SHOP_CATALOG_PAGE_SIZE_OPTIONS = [15, 12, 9, 6, 3] as const;
+
 export type ShopCatalogQuery = {
   page: number;
+  limit: number;
   brandId?: string;
   categoryId?: string;
   search?: string;
@@ -38,6 +43,21 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseLimit(value: string | undefined): number {
+  const parsed = parsePositiveInt(value, DEFAULT_SHOP_CATALOG_LIMIT);
+  if (
+    SHOP_CATALOG_PAGE_SIZE_OPTIONS.includes(
+      parsed as (typeof SHOP_CATALOG_PAGE_SIZE_OPTIONS)[number]
+    )
+  ) {
+    return parsed;
+  }
+  if (parsed >= 1 && parsed <= 100) {
+    return parsed;
+  }
+  return DEFAULT_SHOP_CATALOG_LIMIT;
+}
+
 function parseOptionalNumber(value: string | undefined): number | undefined {
   if (!value?.trim()) {
     return undefined;
@@ -67,6 +87,7 @@ export function parseShopCatalogQuery(
 ): ShopCatalogQuery {
   return {
     page: parsePositiveInt(params.page, 1),
+    limit: parseLimit(params.limit),
     brandId: params.brandId?.trim() || undefined,
     categoryId: params.categoryId?.trim() || undefined,
     search: params.search?.trim() || undefined,
@@ -99,6 +120,9 @@ export function buildShopCatalogSearchParams(
   if (query.maxPrice !== undefined) {
     params.set("maxPrice", String(query.maxPrice));
   }
+  if (query.limit !== DEFAULT_SHOP_CATALOG_LIMIT) {
+    params.set("limit", String(query.limit));
+  }
   if (query.page > 1) {
     params.set("page", String(query.page));
   }
@@ -115,12 +139,27 @@ export function buildShopCatalogHref(query: ShopCatalogQuery): string {
 export function shopCatalogQueryToProductParams(query: ShopCatalogQuery) {
   return {
     page: query.page,
-    limit: 15,
+    limit: query.limit,
     brandId: query.brandId,
     categoryId: query.categoryId,
     search: query.search,
     sort: query.sort,
     minPrice: query.minPrice,
     maxPrice: query.maxPrice,
+  };
+}
+
+export function createShopCatalogQuery(
+  patch: Partial<ShopCatalogQuery> = {}
+): ShopCatalogQuery {
+  return {
+    page: patch.page ?? 1,
+    limit: patch.limit ?? DEFAULT_SHOP_CATALOG_LIMIT,
+    brandId: patch.brandId,
+    categoryId: patch.categoryId,
+    search: patch.search,
+    sort: patch.sort,
+    minPrice: patch.minPrice,
+    maxPrice: patch.maxPrice,
   };
 }

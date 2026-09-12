@@ -13,7 +13,7 @@ const fallbackCategories: ShopCategoryFilterOption[] = [
 ];
 
 export default function FilterByCategories({
-  categories = fallbackCategories,
+  categories,
   selectedItems,
   selectedId,
   serverMode = false,
@@ -29,7 +29,22 @@ export default function FilterByCategories({
   onSelectId?: (id: string | undefined) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
-  const items = categories.length > 0 ? categories : fallbackCategories;
+  const source = categories ?? [];
+  const items = serverMode
+    ? source
+    : source.length > 0
+      ? source
+      : fallbackCategories;
+
+  if (items.length === 0) {
+    return (
+      <li className="rbt-text-color-body px--8 py--8">
+        {serverMode
+          ? "No categories available."
+          : "No categories to filter by."}
+      </li>
+    );
+  }
 
   return (
     <>

@@ -2,15 +2,16 @@
 
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import { useEffect, useState } from "react";
 
 import { Product } from "@/types";
 
 const priceRanges = [
-  { id: 1, label: "Under $25", min: 0, max: 24, count: 9 },
-  { id: 2, label: "$25 to $50", min: 25, max: 50, count: 12 },
-  { id: 3, label: "$50 to $100", min: 50, max: 100, count: 67 },
-  { id: 4, label: "$100 to $200", min: 100, max: 200, count: 30 },
-  { id: 5, label: "$200 & Above", min: 200, max: Infinity, count: 89 },
+  { id: 1, label: "Under $25", min: 0, max: 24 },
+  { id: 2, label: "$25 to $50", min: 25, max: 50 },
+  { id: 3, label: "$50 to $100", min: 50, max: 100 },
+  { id: 4, label: "$100 to $200", min: 100, max: 200 },
+  { id: 5, label: "$200 & Above", min: 200, max: Infinity },
 ];
 
 export default function FilterByPrice({
@@ -30,6 +31,14 @@ export default function FilterByPrice({
   serverMode?: boolean;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
+  const [serverDraftMin, setServerDraftMin] = useState(selectedMin ?? 0);
+  const [serverDraftMax, setServerDraftMax] = useState(selectedMax ?? 1000);
+
+  useEffect(() => {
+    setServerDraftMin(selectedMin ?? 0);
+    setServerDraftMax(selectedMax ?? 1000);
+  }, [selectedMax, selectedMin]);
+
   const handleRangeChange = (range: number | number[]) => {
     const arr = Array.isArray(range) ? range : [range, range];
     onChange([arr[0], arr[1]] as [number, number]);
@@ -45,9 +54,21 @@ export default function FilterByPrice({
     handleRangeChange([priceRange[0], value]);
   };
 
+  const handleServerDraftRangeChange = (range: number | number[]) => {
+    const arr = Array.isArray(range) ? range : [range, range];
+    setServerDraftMin(arr[0]);
+    setServerDraftMax(arr[1]);
+  };
+
+  function applyServerPriceRange() {
+    onServerPriceChange?.(
+      serverDraftMin > 0 ? serverDraftMin : undefined,
+      serverDraftMax < 1000 ? serverDraftMax : undefined
+    );
+  }
+
   return (
     <>
-      {/* Price Range Checkboxes */}
       <ul className="rbt-sidebar-list-wrapper rbt-categories-list-check">
         {priceRanges.map((range) => {
           const isChecked = serverMode
@@ -85,19 +106,72 @@ export default function FilterByPrice({
               />
               <label htmlFor={inputId}>
                 {range.label}
-                <span className="rbt-label-count">
-                  (
-                  {getFilterCount(
-                    (product) =>
-                      product.price >= range.min && product.price <= range.max
-                  )}
-                  )
-                </span>
+                {!serverMode ? (
+                  <span className="rbt-label-count">
+                    (
+                    {getFilterCount(
+                      (product) =>
+                        product.price >= range.min && product.price <= range.max
+                    )}
+                    )
+                  </span>
+                ) : null}
               </label>
             </li>
           );
         })}
       </ul>
+
+      {serverMode && onServerPriceChange ? (
+        <>
+          <div className="rbt-price-range-slider">
+            <Slider
+              range
+              value={[serverDraftMin, serverDraftMax]}
+              onChange={handleServerDraftRangeChange}
+              max={1000}
+              min={0}
+              step={15}
+            />
+            <p className="rbt-range-value">
+              <input
+                type="text"
+                readOnly
+                value={`$${serverDraftMin} - $${serverDraftMax}`}
+              />
+            </p>
+          </div>
+          <div className="rbt-price-input-grp">
+            <input
+              type="number"
+              min={0}
+              placeholder="$ Min"
+              value={serverDraftMin}
+              onChange={(event) => {
+                const value = parseFloat(event.target.value) || 0;
+                setServerDraftMin(value);
+              }}
+            />
+            <input
+              type="number"
+              min={0}
+              placeholder="$ Max"
+              value={serverDraftMax}
+              onChange={(event) => {
+                const value = parseFloat(event.target.value) || 0;
+                setServerDraftMax(value);
+              }}
+            />
+            <button
+              type="button"
+              className="rbt-btn"
+              onClick={applyServerPriceRange}
+            >
+              Go
+            </button>
+          </div>
+        </>
+      ) : null}
 
       {!serverMode ? (
         <>
