@@ -248,11 +248,30 @@ Custom Row
   }
 }
 
-@media (min-width: 992px) {
+/* 8-across fractional columns (e.g. shop category strip on small viewports). */
+.col-1-8 {
+  width: 12.5%;
+  max-width: 12.5%;
+  flex: 0 0 12.5%;
+}
+
+@media (min-width: 576px) {
+  .col-sm-1-8 {
+    width: 12.5%;
+    max-width: 12.5%;
+    flex: 0 0 12.5%;
+  }
+}
+
+@media (min-width: 768px) {
   .col-md-1-8 {
     width: 12.5%;
+    max-width: 12.5%;
+    flex: 0 0 12.5%;
   }
+}
 
+@media (min-width: 992px) {
   .col-md-2-8 {
     width: 25%;
   }
@@ -314,6 +333,14 @@ Custom Row
   .col-lg-8-8 {
     width: 100%;
   }
+
+  .col-lg-1-10 {
+    width: 10%;
+  }
+
+  .col-lg-1-12 {
+    width: 8.333333%;
+  }
 }
 @media (min-width: 1400px) {
   .col-xxl-1-8 {
@@ -346,6 +373,14 @@ Custom Row
 
   .col-xxl-8-8 {
     width: 100%;
+  }
+
+  .col-xxl-1-10 {
+    width: 10%;
+  }
+
+  .col-xxl-1-12 {
+    width: 8.333333%;
   }
 }
 

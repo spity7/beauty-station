@@ -1,8 +1,10 @@
 "use client";
 import { WaveFatIcon } from "../svg-icons";
 import Image from "next/image";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useShopCatalogNavigation } from "@/hooks/useShopCatalogNavigation";
+import type { ShopProductsLoadError } from "@/lib/shop-catalog-load";
 import {
   createShopCatalogQuery,
   SHOP_CATALOG_PAGE_SIZE_OPTIONS,
@@ -28,6 +30,8 @@ import FilterMeta from "./FilterMeta";
 import ShopServerFilterMeta from "./ShopServerFilterMeta";
 import Sidebar from "./Sidebar";
 import LayoutHandler from "./LayoutHandler";
+import ShopProductGridSkeleton from "./ShopProductGridSkeleton";
+import ShopCatalogEmptyState from "./ShopCatalogEmptyState";
 import SidebarScrollable from "./SidebarScrollable";
 import { Product } from "@/types/product";
 
@@ -44,6 +48,8 @@ import ProductCard5 from "../product-cards/ProductCard5";
 import ProductCard4 from "../product-cards/ProductCard4";
 import ProductSmallCard from "../product-cards/ProductCardElectronicsList";
 import ProductCard22 from "../product-cards/ProductCard22";
+
+const SHOP_SEARCH_DEBOUNCE_MS = 400;
 
 type CardVariant =
   | "default"
@@ -73,13 +79,15 @@ export default function ShopDefault({
   showQuantityBadge = false,
   cardVariant = "default",
   catalogFilters,
-  catalogLoadError = false,
   catalogPagination,
   catalogQuery,
+  filtersLoadError = false,
   products,
+  productsLoadError,
   hasCardBorder = false,
   detailsPageUrl = "/product-single-default",
   initialFilters,
+  showBrandFilter = true,
 }: {
   rightSidebar?: boolean;
   stickyTop?: boolean;
@@ -95,24 +103,81 @@ export default function ShopDefault({
   showQuantityBadge?: boolean;
   cardVariant?: CardVariant;
   catalogFilters?: ShopCatalogFilters;
-  catalogLoadError?: boolean;
   catalogPagination?: ShopCatalogPagination;
   catalogQuery?: ShopCatalogQuery;
+  filtersLoadError?: boolean;
   products?: Product[];
+  productsLoadError?: ShopProductsLoadError;
   hasCardBorder?: boolean;
   detailsPageUrl?: string;
   initialFilters?: ShopInitialFilters;
+  showBrandFilter?: boolean;
 }) {
-  const isServerCatalog = Boolean(catalogQuery && !catalogLoadError);
+  const router = useRouter();
+  const isServerCatalog = Boolean(catalogQuery);
+  const [gridColumn, setGridColumn] = useState<2 | 3 | 4>(
+    column === 2 || column === 4 ? column : 3
+  );
+  const activeColumn = isServerCatalog ? gridColumn : column;
   const resolvedCatalogQuery =
     catalogQuery ?? createShopCatalogQuery({ page: 1 });
   const [searchValue, setSearchValue] = useState(initialFilters?.search ?? "");
-  const { navigate, clearFilters } =
+  const [showSearchSkeleton, setShowSearchSkeleton] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { navigate, clearFilters, isPending } =
     useShopCatalogNavigation(resolvedCatalogQuery);
+
+  const applySearchNavigation = useMemo(
+    () => (query: string) => {
+      setShowSearchSkeleton(true);
+      navigate({ search: query || undefined });
+    },
+    [navigate]
+  );
 
   useEffect(() => {
     setSearchValue(catalogQuery?.search ?? "");
+    setShowSearchSkeleton(false);
   }, [catalogQuery?.search]);
+
+  useEffect(() => {
+    if (!isServerCatalog) {
+      return;
+    }
+
+    const trimmed = searchValue.trim();
+    const currentSearch = catalogQuery?.search ?? "";
+
+    if (trimmed === currentSearch) {
+      setShowSearchSkeleton(false);
+      return;
+    }
+
+    if (searchDebounceRef.current) {
+      window.clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = window.setTimeout(() => {
+      searchDebounceRef.current = null;
+      applySearchNavigation(trimmed);
+    }, SHOP_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      if (searchDebounceRef.current) {
+        window.clearTimeout(searchDebounceRef.current);
+        searchDebounceRef.current = null;
+      }
+    };
+  }, [
+    applySearchNavigation,
+    catalogQuery?.search,
+    isServerCatalog,
+    searchValue,
+  ]);
+
+  const isCatalogLoading = isServerCatalog && (isPending || showSearchSkeleton);
+  const skeletonCount =
+    catalogPagination?.limit ?? resolvedCatalogQuery.limit ?? 15;
 
   const pageSizeOptions = useMemo(
     () => SHOP_CATALOG_PAGE_SIZE_OPTIONS.map((size) => `${size} Items`),
@@ -120,7 +185,7 @@ export default function ShopDefault({
   );
   const { state, dispatch, visibleProducts, getFilterCount, isLoadMore } =
     useShopState({
-      column,
+      column: activeColumn,
       defaultBrands: initialFilters?.brandNames ?? [],
       defaultCategories: initialFilters?.categoryNames ?? [],
       defaultSortingOption: sortApiValueToLabel(initialFilters?.sort),
@@ -148,21 +213,28 @@ export default function ShopDefault({
     if (!isServerCatalog) {
       return;
     }
-    navigate({ search: searchValue.trim() || undefined });
+    if (searchDebounceRef.current) {
+      window.clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+    applySearchNavigation(searchValue.trim());
   }
   const columnClass = useMemo(() => {
-    if (column <= 4) {
-      return `col-xxl-${12 / column} col-xl-6 col-lg-6 col-md-6 col-sm-6 col-6 product-col mt--24 ${containerFull ? "" : "product-four-col"}`;
-    } else if (column == 5) {
+    if (activeColumn <= 4) {
+      return `col-xxl-${12 / activeColumn} col-xl-6 col-lg-6 col-md-6 col-sm-6 col-6 product-col mt--24 ${containerFull ? "" : "product-four-col"}`;
+    } else if (activeColumn == 5) {
       return `col-xl-1-5 col-lg-6 col-md-6 col-6 mt--24 product-five-col`;
-    } else if (column == 6) {
+    } else if (activeColumn == 6) {
       return `col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6 mt--24`;
     }
     return "col-lg-4 col-md-6 col-sm-6 col-6 product-col";
-  }, [column, containerFull]);
+  }, [activeColumn, containerFull]);
 
-  const shouldShowPricingBadge = useMemo(() => column <= 4, [column]);
-  const shouldShowTimer = useMemo(() => column <= 4, [column]);
+  const shouldShowPricingBadge = useMemo(
+    () => activeColumn <= 4,
+    [activeColumn]
+  );
+  const shouldShowTimer = useMemo(() => activeColumn <= 4, [activeColumn]);
   const sidebarColClass = useMemo(() => {
     if (wider) {
       return "col-xxl-2 col-xl-3 col-lg-4 col-md-12 col-sm-12 col-12 mt--24";
@@ -258,23 +330,26 @@ export default function ShopDefault({
                     catalogFilters={catalogFilters}
                     getFilterCount={getFilterCount}
                     serverCatalog={serverCatalogControls}
+                    showBrandFilter={showBrandFilter}
                     state={state}
                     dispatch={dispatch}
                   />
                 )}
               </div>
-              <div className="rbt-sidebar-widget-wrapper">
-                <div className="rbt-sidebar-widget-img">
-                  <a href="#">
-                    <Image
-                      alt="Sidebar Banner"
-                      src="/assets/images/sidebar/sidebar-banner-one.webp"
-                      width={628}
-                      height={840}
-                    />
-                  </a>
+              {!isServerCatalog ? (
+                <div className="rbt-sidebar-widget-wrapper">
+                  <div className="rbt-sidebar-widget-img">
+                    <a href="#">
+                      <Image
+                        alt="Sidebar Banner"
+                        src="/assets/images/sidebar/sidebar-banner-one.webp"
+                        width={628}
+                        height={840}
+                      />
+                    </a>
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </aside>
           </div>
           <div className={contentColClass}>
@@ -298,10 +373,16 @@ export default function ShopDefault({
                 <div className="rbt-shop-tools-wrapper rbt-shop-tools-wrapper-var-one mt--20">
                   <div className="rbt-shop-tool-content rbt-shop-view-var-wrapper">
                     <h6 className="rbt-shop-tools-title">
-                      Showing {fromResult}–{toResult} of {resultTotal} results
+                      {isCatalogLoading
+                        ? "Updating results…"
+                        : `Showing ${fromResult}–${toResult} of ${resultTotal} results`}
                     </h6>
                     <div className="rbt-shop-view-btn-list rbt-tag-list-rounded rbt-shop-view-menu">
-                      <LayoutHandler column={column} />
+                      <LayoutHandler
+                        column={activeColumn}
+                        mode={isServerCatalog ? "grid-columns" : "demo-routes"}
+                        onColumnChange={setGridColumn}
+                      />
                     </div>
                   </div>
                   <div className="rbt-shop-tool-content rbt-shop-view-sort-wrapper">
@@ -364,7 +445,9 @@ export default function ShopDefault({
                     </form>
                   </div>
                 </div>
-                {isServerCatalog && catalogFilters ? (
+                {isServerCatalog &&
+                catalogFilters &&
+                !(hasNoFilteredItems && !isCatalogLoading) ? (
                   <div className="rbt-shop-tools-wrapper">
                     <div className="rbt-shop-tool-content rbt-shop-filter-tag-wrapper">
                       <ShopServerFilterMeta
@@ -372,6 +455,7 @@ export default function ShopDefault({
                         catalogQuery={resolvedCatalogQuery}
                         onClearAll={clearFilters}
                         onNavigate={navigate}
+                        showBrandFilter={showBrandFilter}
                       />
                     </div>
                   </div>
@@ -382,44 +466,78 @@ export default function ShopDefault({
                     </div>
                   </div>
                 ) : null}
+                {isServerCatalog && filtersLoadError ? (
+                  <div className="rbt-shop-tools-wrapper">
+                    <p className="mb--0 rbt-text-color-body">
+                      Filter options could not be loaded from the API. You can
+                      still search and sort; retry by refreshing the page.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
             {/* Start Card Area */}
-            <div className={`row row--12 ${hasCardBorder ? "mt--24" : ""}`}>
-              {catalogLoadError ? (
+            <div
+              aria-busy={isCatalogLoading}
+              className={`row row--12 ${hasCardBorder ? "mt--24" : ""}`}
+            >
+              {isCatalogLoading ? (
+                <ShopProductGridSkeleton
+                  columnClass={columnClass}
+                  count={skeletonCount}
+                  hasCardBorder={hasCardBorder}
+                />
+              ) : productsLoadError === "unavailable" ? (
                 <div className="col-12 mt--24">
                   <div className="text-center rbt-radius p--24">
                     <h6 className="mb--8">Unable to load products</h6>
                     <p className="rbt-text-color-body mb--16">
                       The product catalog could not be loaded. Make sure the API
-                      is running, then refresh or adjust your filters.
-                    </p>
-                  </div>
-                </div>
-              ) : hasNoFilteredItems ? (
-                <div className="col-12 mt--24">
-                  <div className="text-center rbt-radius p--24">
-                    <h6 className="mb--8">No items found</h6>
-                    <p className="rbt-text-color-body mb--16">
-                      No products match your selected filters.
+                      is running, then try again.
                     </p>
                     <button
                       type="button"
                       className="rbt-btn rbt-btn-sm"
-                      onClick={() =>
-                        isServerCatalog
-                          ? clearFilters()
-                          : clearAllFilters(dispatch)
-                      }
+                      onClick={() => router.refresh()}
                     >
-                      Clear Filters
+                      Retry
                     </button>
                   </div>
                 </div>
+              ) : productsLoadError === "invalid_query" ? (
+                <div className="col-12 mt--24">
+                  <div className="text-center rbt-radius p--24">
+                    <h6 className="mb--8">Invalid filter</h6>
+                    <p className="rbt-text-color-body mb--16">
+                      One or more filters in the URL are not valid. Clear
+                      filters and try again.
+                    </p>
+                    <button
+                      type="button"
+                      className="rbt-btn rbt-btn-sm"
+                      onClick={() => clearFilters()}
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                </div>
+              ) : hasNoFilteredItems ? (
+                <ShopCatalogEmptyState
+                  catalogFilters={catalogFilters}
+                  catalogQuery={
+                    isServerCatalog ? resolvedCatalogQuery : undefined
+                  }
+                  onClearAll={() =>
+                    isServerCatalog ? clearFilters() : clearAllFilters(dispatch)
+                  }
+                  onNavigate={isServerCatalog ? navigate : undefined}
+                  showBrandFilter={showBrandFilter}
+                  variant={isServerCatalog ? "server" : "demo"}
+                />
               ) : (
-                visibleProducts.map((product, i) => (
+                visibleProducts.map((product) => (
                   <div
-                    key={i}
+                    key={String(product.id)}
                     className={
                       columnClass +
                       (hasCardBorder ? " rbt-border mt--0" : " mt--24")
@@ -446,8 +564,12 @@ export default function ShopDefault({
             {/* End Card Area */}
             <div className="row mt--40 mt_sm--16">
               <div className="col-12">
-                {hasNoFilteredItems ? null : catalogPagination ? (
-                  <ShopServerPagination {...catalogPagination} />
+                {isCatalogLoading ||
+                hasNoFilteredItems ? null : catalogPagination ? (
+                  <ShopServerPagination
+                    {...catalogPagination}
+                    onPageChange={(page) => navigate({ page })}
+                  />
                 ) : !hasMultiplePages ? null : !isLoadMore ? (
                   <ShopPagination
                     key={state.itemPerPage}

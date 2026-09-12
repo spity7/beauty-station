@@ -172,19 +172,21 @@ export default function ProductCard10({
           <h6 className="rbt-card-title">
             <Link href={detailsPageLink}>{product.title}</Link>
           </h6>
-          <div className="rbt-card-rating">
-            <ul className="rbt-rating-icon-list">
-              {Array.from({ length: 5 }, (_, index) => (
-                <li key={index}>
-                  <i
-                    className={`fa-solid fa-star${index < (product.rating ?? 0) ? " rbt-rated-icon" : ""}`}
-                  />
-                </li>
-              ))}
-            </ul>
-            <p className="rating-digit">({product.reviewCount})</p>
-            {product.extraInfo && product.extraInfo.length > 0 && <Facts />}
-          </div>
+          {(product.reviewCount ?? 0) > 0 ? (
+            <div className="rbt-card-rating">
+              <ul className="rbt-rating-icon-list">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <li key={index}>
+                    <i
+                      className={`fa-solid fa-star${index < (product.rating ?? 0) ? " rbt-rated-icon" : ""}`}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p className="rating-digit">({product.reviewCount})</p>
+              {product.extraInfo && product.extraInfo.length > 0 && <Facts />}
+            </div>
+          ) : null}
           <div className="pricing-part">
             {product.oldPrice && (
               <del className="price-text">${product.oldPrice.toFixed(2)}</del>

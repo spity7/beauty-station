@@ -27,7 +27,6 @@ export function mapProductDtoToStorefront(product: ProductDto): Product {
     inStock: product.stock > 0,
     availableQuantity: product.stock,
     isStockOut: product.stock <= 0,
-    rating: 5,
     ratingCount: 0,
   };
 }

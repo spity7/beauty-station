@@ -1,5 +1,5 @@
 import ProductCard5 from "@/components/product-cards/ProductCard5";
-import { cosmeticProducts } from "@/data/products/beauty";
+import { StorefrontCatalogEmptyState } from "@/components/catalog/StorefrontCatalogEmptyState";
 import { fetchPublishedProducts } from "@platform/api-client";
 import { mapProductDtosToStorefront } from "@/lib/mappers/product";
 import type { Product } from "@/types/product";
@@ -9,11 +9,11 @@ async function loadProducts(): Promise<Product[]> {
   try {
     const response = await fetchPublishedProducts(8);
     if (response.data.length === 0) {
-      return cosmeticProducts;
+      return [];
     }
     return mapProductDtosToStorefront(response.data);
   } catch {
-    return cosmeticProducts;
+    return [];
   }
 }
 
@@ -41,21 +41,25 @@ export default async function Products1() {
             </Link>
           </div>
         </div>
-        <div className="row row--12">
-          {products.map((product, i) => (
-            <div
-              key={String(product.id)}
-              className="col-lg-3 col-xl-3 col-xxl-3 col-md-6 col-sm-6 col-6 mt--24"
-            >
-              <ProductCard5
-                detailsPageUrl="/product"
-                contentBgClass="rbt-bg-color-gray-light"
-                product={product}
-                animationOrder={i + 1}
-              />
-            </div>
-          ))}
-        </div>
+        {products.length === 0 ? (
+          <StorefrontCatalogEmptyState message="No products have been published yet." />
+        ) : (
+          <div className="row row--12">
+            {products.map((product, i) => (
+              <div
+                key={String(product.id)}
+                className="col-lg-3 col-xl-3 col-xxl-3 col-md-6 col-sm-6 col-6 mt--24"
+              >
+                <ProductCard5
+                  detailsPageUrl="/product"
+                  contentBgClass="rbt-bg-color-gray-light"
+                  product={product}
+                  animationOrder={i + 1}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

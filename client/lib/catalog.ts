@@ -34,6 +34,7 @@ export async function loadPublishedCategories(
   }
 }
 
+/** Production routes should omit `useFallback` (empty list + empty-state UI). */
 export async function loadStorefrontCategories(
   limit = 100,
   options?: { useFallback?: boolean }

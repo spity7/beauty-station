@@ -1,8 +1,7 @@
 "use client";
 
-import ProductCard10 from "@/components/product-cards/ProductCard10";
 import { useUiElement } from "@/context/uiStore";
-import { electronicsHoverVideoData } from "@/data/products/electronics";
+import StorefrontSearchTrendingProducts from "@/components/store/StorefrontSearchTrendingProducts";
 import Tooltip from "@/components/common/ui/Tooltip";
 import useCopyToClipboard from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
@@ -169,17 +168,7 @@ export default function SearchDropdown() {
               </div>
             </div>
           </div>
-          <div className="row row--12 mt_dec--24">
-            {electronicsHoverVideoData.map((product) => (
-              <div
-                key={product.id}
-                className="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-6 mt--24 mt_sm--16"
-              >
-                <ProductCard10 product={product} />
-                {/* Product details area not present in the provided HTML */}
-              </div>
-            ))}
-          </div>
+          <StorefrontSearchTrendingProducts />
           {/* End Card Area */}
         </div>
         <button

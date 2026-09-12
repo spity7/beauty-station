@@ -79,6 +79,28 @@ describe("catalog API", () => {
     await request(app).get(`/api/products/slug/${draft.slug}`).expect(404);
   });
 
+  it("matches product search by substring prefix of indexed words", async () => {
+    const product = await Product.create({
+      name: "Repairing Hair Mask",
+      slug: `repairing-hair-${Date.now()}`,
+      sku: `REP-${Date.now()}`,
+      price: 32,
+      stock: 10,
+      status: "published",
+    });
+
+    const response = await request(app)
+      .get("/api/products")
+      .query({ search: "repair", limit: 50 })
+      .expect(200);
+
+    assert.ok(
+      response.body.data.some(
+        (item: { id: string }) => item.id === product._id.toString()
+      )
+    );
+  });
+
   it("supports storefront catalog visibility for published products", async () => {
     const product = await seedPublishedProduct();
 
@@ -840,8 +862,16 @@ describe("catalog API", () => {
       .expect(200);
 
     assert.ok(filtered.body.data.length >= 1);
-    assert.ok(filtered.body.data.every((product: { price: number }) => product.price >= 50));
-    assert.ok(filtered.body.data.every((product: { price: number }) => product.price <= 100));
+    assert.ok(
+      filtered.body.data.every(
+        (product: { price: number }) => product.price >= 50
+      )
+    );
+    assert.ok(
+      filtered.body.data.every(
+        (product: { price: number }) => product.price <= 100
+      )
+    );
     assert.equal(filtered.body.data[0]?.name, "Zeta Cream");
   });
 });

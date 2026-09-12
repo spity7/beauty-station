@@ -8,7 +8,7 @@ export default async function Categories({
 }: {
   sectionSpace?: string;
 }) {
-  const categories = await loadStorefrontCategories(12, { useFallback: true });
+  const categories = await loadStorefrontCategories(12);
 
   return (
     <div

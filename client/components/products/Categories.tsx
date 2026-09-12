@@ -1,63 +1,63 @@
 import Link from "next/link";
-import Image from "next/image";
+import { StorefrontCategoryGrid } from "@/components/catalog/StorefrontCategoryGrid";
+import { CATEGORIES_PAGE_PATH } from "@/lib/category-paths";
 import {
-  buildFallbackStorefrontCategories,
   loadPublishedCategories,
   type StorefrontCategoryItem,
 } from "@/lib/catalog";
 
-function toFallbackCategories(): StorefrontCategoryItem[] {
-  return buildFallbackStorefrontCategories().slice(0, 12);
+async function loadCategories(): Promise<StorefrontCategoryItem[]> {
+  return loadPublishedCategories(12);
 }
 
-async function loadCategories(): Promise<StorefrontCategoryItem[]> {
-  const categories = await loadPublishedCategories(12);
-  return categories.length > 0 ? categories : toFallbackCategories();
+function categoriesStripTopSpacing(productionStrip: boolean) {
+  return productionStrip
+    ? "pt--40 pt_md--32 pt_sm--20"
+    : "pt--0 pt_sm--16 pt_md--16";
 }
 
 export default async function Categories({
   containerFull = false,
+  productionStrip = false,
 }: {
   containerFull?: boolean;
+  productionStrip?: boolean;
 }) {
   const categories = await loadCategories();
 
+  if (categories.length === 0) {
+    if (!productionStrip) {
+      return null;
+    }
+    return (
+      <div
+        className={`rbt-component-area rbt-categories-area ${categoriesStripTopSpacing(productionStrip)} rbt-bg-color-white`}
+      >
+        <div className={containerFull ? "rbt-full-width-wrapper" : "container"}>
+          <p className="mb--0 text-center rbt-text-color-body">
+            No categories to show yet.{" "}
+            <Link className="rbt-btn-link" href={CATEGORIES_PAGE_PATH}>
+              View categories
+            </Link>{" "}
+            or{" "}
+            <Link className="rbt-btn-link" href="/shop">
+              browse the shop
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rbt-component-area rbt-categories-area pt--0 pt_sm--16 pt_md--16 rbt-bg-color-white">
+    <div
+      className={`rbt-component-area rbt-categories-area rbt-categories-area--large-circles ${categoriesStripTopSpacing(productionStrip)} rbt-bg-color-white`}
+    >
       <div
         className={`${containerFull ? "rbt-full-width-wrapper" : "container"}`}
       >
-        <div className="row row--12 align-items-end">
-          {categories.map((category, index) => (
-            <div
-              className="col-lg-1-8 col-md-3 col-sm-3 col-3 mt--12"
-              key={category.id}
-            >
-              <Link
-                className={`rbt-cat-box rbt-cat-box-1 text-center rbt-scroll-trigger fade_in animation-order-${
-                  index + 1
-                }`}
-                href={category.href}
-              >
-                <div className="inner">
-                  <div className="rbt-image-portion">
-                    {category.image ? (
-                      <Image
-                        alt={category.name}
-                        height={400}
-                        src={category.image}
-                        width={400}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="content">
-                    <h6 className="title">{category.name}</h6>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
+        <StorefrontCategoryGrid categories={categories} layout="compact" />
       </div>
     </div>
   );

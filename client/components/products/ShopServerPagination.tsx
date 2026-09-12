@@ -8,7 +8,10 @@ export default function ShopServerPagination({
   page,
   limit,
   total,
-}: ShopCatalogPagination) {
+  onPageChange,
+}: ShopCatalogPagination & {
+  onPageChange?: (page: number) => void;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const totalPages = Math.ceil(total / limit);
@@ -18,6 +21,10 @@ export default function ShopServerPagination({
   }
 
   const goToPage = (nextPage: number) => {
+    if (onPageChange) {
+      onPageChange(nextPage);
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (nextPage <= 1) {
       params.delete("page");

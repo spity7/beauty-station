@@ -6,11 +6,37 @@ import { AppError } from "../middleware/errorHandler.js";
 
 type ProductListQuery = z.infer<typeof productListQuerySchema>;
 
+const MAX_SEARCH_LENGTH = 100;
+
 function parseObjectId(value: string, field: string): mongoose.Types.ObjectId {
   if (!mongoose.Types.ObjectId.isValid(value)) {
     throw new AppError(400, `Invalid ${field}`);
   }
   return new mongoose.Types.ObjectId(value);
+}
+
+/** Escape user input for safe use inside a MongoDB $regex pattern. */
+export function escapeRegexSearchTerm(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildSearchOrClause(search: string): Record<string, unknown> {
+  const trimmed = search.trim().slice(0, MAX_SEARCH_LENGTH);
+  if (!trimmed) {
+    return {};
+  }
+  const pattern = {
+    $regex: escapeRegexSearchTerm(trimmed),
+    $options: "i",
+  };
+  return {
+    $or: [
+      { name: pattern },
+      { sku: pattern },
+      { description: pattern },
+      { slug: pattern },
+    ],
+  };
 }
 
 export function buildProductListFilter(
@@ -27,8 +53,8 @@ export function buildProductListFilter(
     filter.status = "published";
   }
 
-  if (query.search) {
-    filter.$text = { $search: query.search };
+  if (query.search?.trim()) {
+    Object.assign(filter, buildSearchOrClause(query.search));
   }
 
   if (query.categoryId) {

@@ -1,57 +1,28 @@
-import Banner from "@/components/products/Banner";
 import Breadcrumb from "@/components/products/Breadcrumb";
 import Categories from "@/components/products/Categories";
 import ShopDefault from "@/components/products/ShopDefault";
+import ShopProductionBanner from "@/components/products/ShopProductionBanner";
 import { StorefrontChrome } from "@/components/site/StorefrontChrome";
-import { mapProductDtosToStorefront } from "@/lib/mappers/product";
+import { parseShopCatalogQuery } from "@/lib/shop-query";
 import {
-  parseShopCatalogQuery,
-  shopCatalogQueryToProductParams,
-} from "@/lib/shop-query";
-import {
-  loadShopCatalogFilters,
-  resolveShopInitialFilters,
-} from "@/lib/shop-catalog";
+  loadShopCatalogFiltersForPage,
+  loadShopProductsForPage,
+} from "@/lib/shop-catalog-load";
+import { buildShopPageMetadata } from "@/lib/shop-metadata";
+import { resolveShopInitialFilters } from "@/lib/shop-catalog";
 import { getStorefrontSiteConfig } from "@/lib/site";
-import { fetchProducts } from "@platform/api-client";
 import type { Metadata } from "next";
-import type { Product } from "@/types/product";
-import type { ShopCatalogPagination } from "@/types/shop-catalog";
 
 const site = getStorefrontSiteConfig();
 
-export const metadata: Metadata = {
-  title: `Shop | ${site.seo.title}`,
-  description: site.seo.description,
-};
-
-type ShopProductLoadResult = {
-  catalogLoadError?: boolean;
-  catalogPagination?: ShopCatalogPagination;
-  products: Product[];
-};
-
-async function loadShopProducts(
-  query: ReturnType<typeof parseShopCatalogQuery>
-): Promise<ShopProductLoadResult> {
-  try {
-    const response = await fetchProducts(
-      shopCatalogQueryToProductParams(query)
-    );
-    return {
-      products: mapProductDtosToStorefront(response.data),
-      catalogPagination: {
-        limit: response.limit,
-        page: response.page,
-        total: response.total,
-      },
-    };
-  } catch {
-    return {
-      products: [],
-      catalogLoadError: true,
-    };
-  }
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const { filters } = await loadShopCatalogFiltersForPage();
+  return buildShopPageMetadata(site, resolvedSearchParams, filters);
 }
 
 export default async function ShopPage({
@@ -61,21 +32,24 @@ export default async function ShopPage({
 }) {
   const resolvedSearchParams = await searchParams;
   const catalogQuery = parseShopCatalogQuery(resolvedSearchParams);
-  const [{ products, catalogPagination, catalogLoadError }, catalogFilters] =
-    await Promise.all([
-      loadShopProducts(catalogQuery),
-      loadShopCatalogFilters(),
-    ]);
+  const [
+    { products, catalogPagination, productsLoadError },
+    { filters: catalogFilters, filtersLoadError },
+  ] = await Promise.all([
+    loadShopProductsForPage(catalogQuery),
+    loadShopCatalogFiltersForPage(),
+  ]);
   const initialFilters = resolveShopInitialFilters(
     catalogFilters,
     catalogQuery
   );
+  const showBrandFilter = site.features.brands !== false;
 
   return (
     <StorefrontChrome>
       <Breadcrumb title="Shop" />
-      <Banner />
-      <Categories />
+      <ShopProductionBanner />
+      <Categories productionStrip />
       <div className="rbt-component-area ptb--32 ptb_sm--12">
         <div className="container">
           <div className="rbt-separator rbt-separator-gray200" />
@@ -84,12 +58,14 @@ export default async function ShopPage({
       <ShopDefault
         cardVariant="standard"
         catalogFilters={catalogFilters}
-        catalogLoadError={catalogLoadError}
         catalogPagination={catalogPagination}
         catalogQuery={catalogQuery}
         detailsPageUrl="/product"
+        filtersLoadError={filtersLoadError}
         initialFilters={initialFilters}
-        products={products}
+        products={products ?? []}
+        productsLoadError={productsLoadError}
+        showBrandFilter={showBrandFilter}
       />
     </StorefrontChrome>
   );

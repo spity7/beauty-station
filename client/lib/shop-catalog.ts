@@ -21,6 +21,17 @@ export function mapStorefrontCategoriesToFilterOptions(
   }));
 }
 
+/** Maps admin tileClass tokens to storefront SCSS avatar variants. */
+export function resolveShopBrandAvatarClass(tileClass?: string): string {
+  if (!tileClass) {
+    return "rbt-shop-brand-avatar";
+  }
+  if (tileClass.includes("success")) {
+    return "rbt-shop-brand-avatar rbt-shop-brand-avatar--muted";
+  }
+  return "rbt-shop-brand-avatar";
+}
+
 export function mapStorefrontBrandsToFilterOptions(
   brands: BrandDto[]
 ): ShopBrandFilterOption[] {
@@ -29,6 +40,7 @@ export function mapStorefrontBrandsToFilterOptions(
     name: brand.name,
     initials: brand.initials,
     tileClass: brand.tileClass,
+    avatarClass: resolveShopBrandAvatarClass(brand.tileClass),
     productCount: brand.productCount,
   }));
 }

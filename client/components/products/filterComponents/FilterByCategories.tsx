@@ -3,15 +3,6 @@
 import type { Product } from "@/types";
 import type { ShopCategoryFilterOption } from "@/types/shop-catalog";
 
-const fallbackCategories: ShopCategoryFilterOption[] = [
-  { id: "1", name: "Accessories" },
-  { id: "2", name: "Best seller" },
-  { id: "3", name: "Computers & Tablets" },
-  { id: "4", name: "Home Audio & Theatre" },
-  { id: "5", name: "Home Theatre Accessories" },
-  { id: "6", name: "Media Streamers" },
-];
-
 export default function FilterByCategories({
   categories,
   selectedItems,
@@ -29,12 +20,7 @@ export default function FilterByCategories({
   onSelectId?: (id: string | undefined) => void;
   getFilterCount: (fn: (product: Product) => boolean) => number;
 }) {
-  const source = categories ?? [];
-  const items = serverMode
-    ? source
-    : source.length > 0
-      ? source
-      : fallbackCategories;
+  const items = categories ?? [];
 
   if (items.length === 0) {
     return (
