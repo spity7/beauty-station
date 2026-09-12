@@ -213,6 +213,7 @@ export function AttributeCatalogForm({
             entityLabel="attribute"
             products={assignedProducts}
             productsHref={productsListPath({ attributeSlug: initial.slug })}
+            productsListFilter={{ attributeSlug: initial.slug }}
             title="Product usage"
           />
         </div>

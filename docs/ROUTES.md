@@ -106,29 +106,29 @@ Proxies to `@platform/server` and sets httpOnly cookies on the admin origin (`:3
 
 ### Dashboard (template + catalog API)
 
-| Path                                                                             | API-connected? | Notes                                                                             |
-| -------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------- |
-| `/`                                                                              | No             | Dashboard home (demo charts)                                                      |
-| `/products`                                                                      | **Yes**        | List + delete from API                                                            |
-| `/products/new`, `/products/[id]/edit`                                           | **Yes**        | Create/update via API (published attributes picker; archived status on edit only) |
-| `/categories`                                                                    | **Yes**        | List + delete from API                                                            |
-| `/categories/new`, `/categories/[id]/edit`                                       | **Yes**        | Create/update via API (required thumbnail upload on save)                         |
-| `/brands`                                                                        | **Yes**        | List + delete from API                                                            |
-| `/brands/new`, `/brands/[id]/edit`                                               | **Yes**        | Create/update via API                                                             |
-| `/attributes`                                                                    | **Yes**        | List + delete from API                                                            |
-| `/attributes/new`, `/attributes/[id]/edit`                                       | **Yes**        | Create/update via API                                                             |
-| `/products/demo/edit`, `/categories/demo/edit`, …                                | No             | Legacy demo routes (optional)                                                     |
-| `/orders`                                                                        | **Yes**        | List + status updates from API                                                    |
-| `/orders/[id]`                                                                   | **Yes**        | Order detail + status update                                                      |
-| `/customers`                                                                     | **Yes**        | Customer list from API + enable/disable accounts                                  |
-| `/users/new`                                                                     | No             | Demo data                                                                         |
-| `/coupons`, `/coupons/new`, `/coupons/demo/edit`                                 | No             | Demo data                                                                         |
-| `/roles`, `/roles/new`                                                           | No             | Demo data — not wired to API RBAC                                                 |
-| `/reports`, `/tax`, `/media`, `/history`                                         | No             | Demo data                                                                         |
-| `/product-reviews`, `/support-tickets`, `/notifications`                         | No             | Demo data                                                                         |
-| `/integrations`, `/upgrade`, `/update-app`, `/list-page`                         | No             | Template pages                                                                    |
-| `/settings`, `/settings/shipping`, `/settings/payments`, `/settings/permissions` | No             | Demo data                                                                         |
-| `/localization/currency-rates`, `/localization/translation`                      | No             | Demo data                                                                         |
+| Path                                                                             | API-connected? | Notes                                                                                       |
+| -------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| `/`                                                                              | No             | Dashboard home (demo charts)                                                                |
+| `/products`                                                                      | **Yes**        | List + delete; query `categoryId`, `brandId`, `attributeSlug`, `productId` (highlights row) |
+| `/products/new`, `/products/[id]/edit`                                           | **Yes**        | Create/update via API (published attributes picker; archived status on edit only)           |
+| `/categories`                                                                    | **Yes**        | List + delete from API                                                                      |
+| `/categories/new`, `/categories/[id]/edit`                                       | **Yes**        | Create/update via API (required thumbnail upload on save)                                   |
+| `/brands`                                                                        | **Yes**        | List + delete from API                                                                      |
+| `/brands/new`, `/brands/[id]/edit`                                               | **Yes**        | Create/update via API                                                                       |
+| `/attributes`                                                                    | **Yes**        | List + delete from API                                                                      |
+| `/attributes/new`, `/attributes/[id]/edit`                                       | **Yes**        | Create/update via API                                                                       |
+| `/products/demo/edit`, `/categories/demo/edit`, …                                | No             | Legacy demo routes (optional)                                                               |
+| `/orders`                                                                        | **Yes**        | List + status updates from API                                                              |
+| `/orders/[id]`                                                                   | **Yes**        | Order detail + status update                                                                |
+| `/customers`                                                                     | **Yes**        | Customer list from API + enable/disable accounts                                            |
+| `/users/new`                                                                     | No             | Demo data                                                                                   |
+| `/coupons`, `/coupons/new`, `/coupons/demo/edit`                                 | No             | Demo data                                                                                   |
+| `/roles`, `/roles/new`                                                           | No             | Demo data — not wired to API RBAC                                                           |
+| `/reports`, `/tax`, `/media`, `/history`                                         | No             | Demo data                                                                                   |
+| `/product-reviews`, `/support-tickets`, `/notifications`                         | No             | Demo data                                                                                   |
+| `/integrations`, `/upgrade`, `/update-app`, `/list-page`                         | No             | Template pages                                                                              |
+| `/settings`, `/settings/shipping`, `/settings/payments`, `/settings/permissions` | No             | Demo data                                                                                   |
+| `/localization/currency-rates`, `/localization/translation`                      | No             | Demo data                                                                                   |
 
 Navigation source: `admin/config/navigation.ts` + `admin/config/routes.ts`. Sidebar lists list + create pages only; edit/detail use dynamic `[id]` routes from list rows (`pathBuilders` in `routes.ts`). Legacy `/…/demo/edit` URLs remain for template pages but are not in nav. Optional nav items are hidden when matching `SiteConfig.features` is `false` (e.g. `coupons`, `reviews`).
 

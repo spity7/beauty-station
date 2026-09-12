@@ -233,6 +233,7 @@ export function CategoryCatalogForm({
             entityLabel="category"
             products={assignedProducts}
             productsHref={productsListPath({ categoryId: initial.id })}
+            productsListFilter={{ categoryId: initial.id }}
           />
         </div>
       ) : null}

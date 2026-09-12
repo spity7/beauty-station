@@ -242,6 +242,7 @@ export function BrandCatalogForm({
             entityLabel="brand"
             products={assignedProducts}
             productsHref={productsListPath({ brandId: initial.id })}
+            productsListFilter={{ brandId: initial.id }}
           />
         </div>
       ) : null}

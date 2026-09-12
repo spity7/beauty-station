@@ -31,9 +31,10 @@ export default async function ProductsPage({
     attributeSlug?: string;
     brandId?: string;
     categoryId?: string;
+    productId?: string;
   }>;
 }) {
-  const { attributeSlug, brandId, categoryId } = await searchParams;
+  const { attributeSlug, brandId, categoryId, productId } = await searchParams;
   let products: Array<Product & { id: string }> = [];
   let categoryFilters: Array<{ id: string; name: string }> = [];
   let brandFilters: Array<{ id: string; name: string }> = [];
@@ -98,6 +99,7 @@ export default async function ProductsPage({
         attributeFilters={attributeFilters}
         brandFilters={brandFilters}
         categoryFilters={categoryFilters}
+        focusProductId={productId}
         initialFilters={{ attributeSlug, brandId, categoryId }}
         products={products}
       />

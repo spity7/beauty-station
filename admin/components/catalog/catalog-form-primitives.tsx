@@ -13,7 +13,13 @@ import {
   LOW_STOCK_THRESHOLD,
   type AssignedProductPreview,
 } from "@/lib/assigned-products";
-import { productEditPath } from "@/lib/paths";
+import { productsListPath } from "@/lib/paths";
+
+export type AssignedProductsListFilter = {
+  attributeSlug?: string;
+  brandId?: string;
+  categoryId?: string;
+};
 import type { ProductFormAttribute } from "@/lib/product-form-attributes";
 import { platformInstance } from "@platform/api-client";
 import { cn } from "@/utils/cn";
@@ -994,11 +1000,16 @@ function AssignedProductThumb({ alt, src }: { alt: string; src: string }) {
 function AssignedProductRow({
   disabled = false,
   product,
+  productsListFilter,
 }: {
   disabled?: boolean;
   product: AssignedProductPreview;
+  productsListFilter: AssignedProductsListFilter;
 }) {
-  const href = productEditPath(product.id);
+  const href = productsListPath({
+    ...productsListFilter,
+    productId: product.id,
+  });
   const isLowStock =
     product.status === "published" && product.stock <= LOW_STOCK_THRESHOLD;
   const rowClassName =
@@ -1124,6 +1135,7 @@ export function AssignedProductsSection({
   entityLabel,
   products,
   productsHref,
+  productsListFilter,
   title = "Assigned products",
 }: {
   addProductHref: string;
@@ -1133,6 +1145,7 @@ export function AssignedProductsSection({
   entityLabel: string;
   products: AssignedProductPreview[];
   productsHref: string;
+  productsListFilter: AssignedProductsListFilter;
   title?: string;
 }) {
   const [page, setPage] = useState(1);
@@ -1201,7 +1214,11 @@ export function AssignedProductsSection({
           <ul className="divide-y divide-surface-line bg-surface-card">
             {pageProducts.map((product) => (
               <li key={product.id}>
-                <AssignedProductRow disabled={disabled} product={product} />
+                <AssignedProductRow
+                  disabled={disabled}
+                  product={product}
+                  productsListFilter={productsListFilter}
+                />
               </li>
             ))}
           </ul>
@@ -1252,6 +1269,7 @@ export function ProductCountCard({
       entityLabel="catalog item"
       products={[]}
       productsHref={productsHref}
+      productsListFilter={{}}
     />
   );
 }

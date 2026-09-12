@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/layout/icon";
 import {
@@ -41,6 +41,7 @@ type ProductListTableProps = {
   attributeFilters: CatalogFilterOption[];
   brandFilters: CatalogFilterOption[];
   categoryFilters: CatalogFilterOption[];
+  focusProductId?: string;
   initialFilters?: ProductListInitialFilters;
   products: Product[];
 };
@@ -77,10 +78,12 @@ export function ProductListTable({
   attributeFilters,
   brandFilters,
   categoryFilters,
+  focusProductId,
   initialFilters = {},
   products,
 }: ProductListTableProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | ProductStatus>("all");
@@ -102,6 +105,9 @@ export function ProductListTable({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [rows, setRows] = useState(products);
+  const [highlightProductId, setHighlightProductId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     setRows(products);
@@ -179,6 +185,45 @@ export function ProductListTable({
       return String(a[sort.key]).localeCompare(String(b[sort.key])) * direction;
     });
   }, [attributeSlug, brandId, categoryId, query, rows, sort, status]);
+
+  useEffect(() => {
+    const id = focusProductId?.trim();
+    if (!id) {
+      return;
+    }
+
+    const isVisible = filteredProducts.some(
+      (product) => productKey(product) === id
+    );
+    if (!isVisible) {
+      return;
+    }
+
+    setHighlightProductId(id);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`product-row-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    const clearHighlight = window.setTimeout(() => {
+      setHighlightProductId(null);
+    }, 4500);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.has("productId")) {
+      params.delete("productId");
+      const queryString = params.toString();
+      router.replace(
+        queryString ? `${routes.products}?${queryString}` : routes.products,
+        { scroll: false }
+      );
+    }
+
+    return () => {
+      window.clearTimeout(clearHighlight);
+    };
+  }, [filteredProducts, focusProductId, router, searchParams]);
 
   const allVisibleSelected =
     filteredProducts.length > 0 &&
@@ -369,116 +414,130 @@ export function ProductListTable({
               </tr>
             </thead>
             <tbody className="text-[14px]">
-              {filteredProducts.map((product) => (
-                <tr
-                  className="border-b border-surface-line hover:bg-surface-body/70"
-                  key={productKey(product)}
-                >
-                  <td className="py-4 pr-3">
-                    <input
-                      aria-label={`Select ${product.name}`}
-                      checked={selected.has(productKey(product))}
-                      className="h-4 w-4 rounded border-surface-line text-brand-600 focus:ring-brand-600"
-                      onChange={(event) =>
-                        toggleSelected(product, event.target.checked)
-                      }
-                      type="checkbox"
-                    />
-                  </td>
-                  <td className="py-4 pr-4">
-                    <div className="flex items-center gap-3">
-                      <Image
-                        alt={product.name}
-                        className="h-12 w-12 rounded-base bg-surface-body object-cover"
-                        height={48}
-                        src={product.image}
-                        width={48}
-                      />
-                      <div>
-                        <Link
-                          className="font-semibold text-ink-900 hover:text-brand-600"
-                          href={productEditPath(String(product.id))}
-                        >
-                          {product.name}
-                        </Link>
-                        <p className="mt-1 text-[13px] text-ink-400">
-                          SKU: {product.sku}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 pr-4 text-ink-700">{product.category}</td>
-                  <td className="py-4 pr-4 text-ink-700">
-                    ${product.price.toFixed(2)}
-                  </td>
-                  <td
+              {filteredProducts.map((product) => {
+                const key = productKey(product);
+                const isHighlighted =
+                  highlightProductId !== null && highlightProductId === key;
+
+                return (
+                  <tr
                     className={cn(
-                      "py-4 pr-4",
-                      product.status === "low stock"
-                        ? "text-warning-600"
-                        : "text-ink-700"
+                      "border-b border-surface-line hover:bg-surface-body/70",
+                      isHighlighted &&
+                        "bg-brand-50 ring-2 ring-inset ring-brand-300"
                     )}
+                    id={product.id ? `product-row-${product.id}` : undefined}
+                    key={key}
                   >
-                    {product.stock}
-                  </td>
-                  <td className="py-4 pr-4">
-                    <StatusBadge
-                      className={statusClass[product.status]}
-                      label={statusLabel[product.status]}
-                    />
-                  </td>
-                  <td className="py-4 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      {product.slug && product.catalogStatus === "published" ? (
-                        <StorefrontProductViewAction
-                          disabled={deleting}
-                          href={storefrontProductPath(product.slug)}
+                    <td className="py-4 pr-3">
+                      <input
+                        aria-label={`Select ${product.name}`}
+                        checked={selected.has(productKey(product))}
+                        className="h-4 w-4 rounded border-surface-line text-brand-600 focus:ring-brand-600"
+                        onChange={(event) =>
+                          toggleSelected(product, event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                    </td>
+                    <td className="py-4 pr-4">
+                      <div className="flex items-center gap-3">
+                        <Image
+                          alt={product.name}
+                          className="h-12 w-12 rounded-base bg-surface-body object-cover"
+                          height={48}
+                          src={product.image}
+                          width={48}
                         />
-                      ) : (
+                        <div>
+                          <Link
+                            className="font-semibold text-ink-900 hover:text-brand-600"
+                            href={productEditPath(String(product.id))}
+                          >
+                            {product.name}
+                          </Link>
+                          <p className="mt-1 text-[13px] text-ink-400">
+                            SKU: {product.sku}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 pr-4 text-ink-700">
+                      {product.category}
+                    </td>
+                    <td className="py-4 pr-4 text-ink-700">
+                      ${product.price.toFixed(2)}
+                    </td>
+                    <td
+                      className={cn(
+                        "py-4 pr-4",
+                        product.status === "low stock"
+                          ? "text-warning-600"
+                          : "text-ink-700"
+                      )}
+                    >
+                      {product.stock}
+                    </td>
+                    <td className="py-4 pr-4">
+                      <StatusBadge
+                        className={statusClass[product.status]}
+                        label={statusLabel[product.status]}
+                      />
+                    </td>
+                    <td className="py-4 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        {product.slug &&
+                        product.catalogStatus === "published" ? (
+                          <StorefrontProductViewAction
+                            disabled={deleting}
+                            href={storefrontProductPath(product.slug)}
+                          />
+                        ) : (
+                          <button
+                            aria-label="Storefront preview unavailable for draft or archived products"
+                            className="icon-button cursor-not-allowed opacity-40"
+                            disabled
+                            title="Publish to preview on the storefront"
+                            type="button"
+                          >
+                            <Icon className="h-4 w-4" name="store" />
+                          </button>
+                        )}
+                        {deleting ? (
+                          <button
+                            aria-label="Edit product"
+                            className="icon-button disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled
+                            type="button"
+                          >
+                            <Icon className="h-4 w-4" name="pencil" />
+                          </button>
+                        ) : (
+                          <Link
+                            aria-label="Edit product"
+                            className="icon-button hover:bg-brand-50 hover:text-brand-600"
+                            href={productEditPath(String(product.id))}
+                          >
+                            <Icon className="h-4 w-4" name="pencil" />
+                          </Link>
+                        )}
                         <button
-                          aria-label="Storefront preview unavailable for draft or archived products"
-                          className="icon-button cursor-not-allowed opacity-40"
-                          disabled
-                          title="Publish to preview on the storefront"
+                          aria-label="Delete product"
+                          className="icon-button hover:bg-danger-50 hover:text-danger-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={deleting}
+                          onClick={() => {
+                            setSelected(new Set([productKey(product)]));
+                            setConfirmOpen(true);
+                          }}
                           type="button"
                         >
-                          <Icon className="h-4 w-4" name="store" />
+                          <Icon className="h-4 w-4" name="trash-2" />
                         </button>
-                      )}
-                      {deleting ? (
-                        <button
-                          aria-label="Edit product"
-                          className="icon-button disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled
-                          type="button"
-                        >
-                          <Icon className="h-4 w-4" name="pencil" />
-                        </button>
-                      ) : (
-                        <Link
-                          aria-label="Edit product"
-                          className="icon-button hover:bg-brand-50 hover:text-brand-600"
-                          href={productEditPath(String(product.id))}
-                        >
-                          <Icon className="h-4 w-4" name="pencil" />
-                        </Link>
-                      )}
-                      <button
-                        aria-label="Delete product"
-                        className="icon-button hover:bg-danger-50 hover:text-danger-500 disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={deleting}
-                        onClick={() => {
-                          setSelected(new Set([productKey(product)]));
-                          setConfirmOpen(true);
-                        }}
-                        type="button"
-                      >
-                        <Icon className="h-4 w-4" name="trash-2" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

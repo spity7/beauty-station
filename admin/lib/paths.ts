@@ -40,6 +40,7 @@ export function productsListPath(options?: {
   attributeSlug?: string;
   brandId?: string;
   categoryId?: string;
+  productId?: string;
 }) {
   const params = new URLSearchParams();
   if (options?.categoryId) {
@@ -50,6 +51,9 @@ export function productsListPath(options?: {
   }
   if (options?.attributeSlug) {
     params.set("attributeSlug", options.attributeSlug);
+  }
+  if (options?.productId) {
+    params.set("productId", options.productId);
   }
   const query = params.toString();
   return query ? `${routes.products}?${query}` : routes.products;
