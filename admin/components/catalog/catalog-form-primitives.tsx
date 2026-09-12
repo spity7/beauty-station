@@ -304,6 +304,7 @@ export async function deleteHostedCatalogImages(urls: string[]): Promise<void> {
 }
 
 export type CatalogFieldErrors = {
+  image?: string;
   name?: string;
   sku?: string;
 };
@@ -368,6 +369,13 @@ function parseCatalogFormError(message: string | null): ParsedCatalogFormError {
     return {
       summary: "Image upload failed. Try again.",
       fieldErrors: {},
+    };
+  }
+
+  if (normalized.includes("category image is required")) {
+    return {
+      summary: "Category image is required.",
+      fieldErrors: { image: "Required" },
     };
   }
 
@@ -714,18 +722,24 @@ export function ControlledTextarea({
 export function ThumbnailUploadCard({
   alt,
   disabled = false,
+  error,
+  help,
   onClear,
   onUpload,
   previewState,
   previewUrl,
+  required = false,
   title = "Thumbnail",
 }: {
   alt: string;
   disabled?: boolean;
+  error?: string;
+  help?: string;
   onClear?: () => void;
   onUpload: (file: File) => void;
   previewState: ThumbnailPreviewState;
   previewUrl: string;
+  required?: boolean;
   title?: string;
 }) {
   const hasImage = previewState !== "none" && Boolean(previewUrl);
@@ -733,11 +747,12 @@ export function ThumbnailUploadCard({
   const isBlobPreview = previewUrl.startsWith("blob:");
 
   const helperText =
-    previewState === "pending"
+    help ??
+    (previewState === "pending"
       ? "Preview only — the file uploads to storage when you save."
       : previewState === "saved"
         ? "Drag a new image here or click to replace. Uploads on save."
-        : "Drag and drop a square PNG, JPG, or WebP image, or click to browse.";
+        : "Drag and drop a square PNG, JPG, or WebP image, or click to browse.");
 
   const { isDragging, dropZoneProps } = useCatalogImageDropHandlers({
     disabled,
@@ -799,10 +814,15 @@ export function ThumbnailUploadCard({
             type="file"
           />
         </label>
-        <p className="mt-4 text-[12px] text-ink-400">
-          {disabled ? "Saving…" : helperText}
+        <p
+          className={cn(
+            "mt-4 text-[12px]",
+            error ? "text-error-600" : "text-ink-400"
+          )}
+        >
+          {disabled ? "Saving…" : error ?? helperText}
         </p>
-        {hasImage && onClear ? (
+        {hasImage && onClear && !required ? (
           <button
             className="mt-4 inline-flex h-9 items-center gap-2 rounded-base border border-surface-line px-4 text-[13px] font-semibold text-ink-700 hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
             disabled={disabled}

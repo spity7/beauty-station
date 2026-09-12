@@ -438,7 +438,7 @@
           },
           "image": {
             "type": "string",
-            "default": ""
+            "minLength": 1
           },
           "status": {
             "type": "string",
@@ -446,7 +446,7 @@
             "default": "draft"
           }
         },
-        "required": ["name"]
+        "required": ["name", "image"]
       },
       "UpdateCategoryInput": {
         "type": "object",
@@ -462,7 +462,8 @@
             "maxLength": 200
           },
           "image": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "status": {
             "type": "string",
@@ -3344,7 +3345,7 @@
                   },
                   "image": {
                     "type": "string",
-                    "default": ""
+                    "minLength": 1
                   },
                   "status": {
                     "type": "string",
@@ -3352,7 +3353,7 @@
                     "default": "draft"
                   }
                 },
-                "required": ["name"]
+                "required": ["name", "image"]
               }
             }
           }
@@ -3590,7 +3591,8 @@
                     "maxLength": 200
                   },
                   "image": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "status": {
                     "type": "string",

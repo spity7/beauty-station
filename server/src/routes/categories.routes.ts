@@ -21,6 +21,12 @@ import {
 
 export const categoriesRouter = Router();
 
+function assertCategoryHasImage(image: string | undefined | null): void {
+  if (!image?.trim()) {
+    throw new AppError(400, "Category image is required");
+  }
+}
+
 categoriesRouter.get(
   "/",
   catalogReadRateLimiter,
@@ -69,6 +75,7 @@ categoriesRouter.post(
   requireAdmin,
   asyncHandler(async (req, res) => {
     const payload = createCategorySchema.parse(req.body);
+    assertCategoryHasImage(payload.image);
     const slug = slugify(payload.name);
 
     try {
@@ -113,6 +120,7 @@ categoriesRouter.patch(
       category.status = payload.status;
     }
 
+    assertCategoryHasImage(category.image);
     await category.save();
 
     if (payload.name && payload.name !== previousName) {

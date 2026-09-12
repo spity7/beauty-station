@@ -4,7 +4,7 @@ const categorySchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, trim: true },
-    image: { type: String, default: "" },
+    image: { type: String, required: true, trim: true },
     status: {
       type: String,
       enum: ["draft", "published"],

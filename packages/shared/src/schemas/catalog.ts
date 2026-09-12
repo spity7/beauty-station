@@ -47,17 +47,22 @@ export const updateProductSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+const categoryImageSchema = z
+  .string()
+  .trim()
+  .min(1, "Category image is required");
+
 export const createCategorySchema = z.object({
   name: z.string().min(1).max(200),
   slug: z.string().min(1).max(200).optional(),
-  image: z.string().default(""),
+  image: categoryImageSchema,
   status: z.enum(CATEGORY_STATUSES).default("draft"),
 });
 
 export const updateCategorySchema = z.object({
   name: z.string().min(1).max(200).optional(),
   slug: z.string().min(1).max(200).optional(),
-  image: z.string().optional(),
+  image: categoryImageSchema.optional(),
   status: z.enum(CATEGORY_STATUSES).optional(),
 });
 

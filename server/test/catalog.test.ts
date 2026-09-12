@@ -11,6 +11,7 @@ import {
   seedPublishedProduct,
   setupTestDatabase,
   teardownTestDatabase,
+  TEST_CATEGORY_IMAGE,
 } from "./helpers.js";
 
 describe("catalog API", () => {
@@ -171,6 +172,7 @@ describe("catalog API", () => {
     const category = await Category.create({
       name: "Filter Category",
       slug: `filter-category-${Date.now()}`,
+      image: TEST_CATEGORY_IMAGE,
       status: "published",
     });
     const brand = await Brand.create({
@@ -284,6 +286,7 @@ describe("catalog API", () => {
       .set(authHeader(body.accessToken))
       .send({
         name: `Draft Category ${suffix}`,
+        image: TEST_CATEGORY_IMAGE,
         status: "draft",
       })
       .expect(201);
@@ -324,6 +327,19 @@ describe("catalog API", () => {
       .expect(400);
   });
 
+  it("rejects category create without image", async () => {
+    const { body } = await registerAdmin(app);
+
+    await request(app)
+      .post("/api/categories")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Missing Image Category ${Date.now()}`,
+        status: "draft",
+      })
+      .expect(400);
+  });
+
   it("keeps category status when patching image only", async () => {
     const { body } = await registerAdmin(app);
 
@@ -332,6 +348,7 @@ describe("catalog API", () => {
       .set(authHeader(body.accessToken))
       .send({
         name: `Published Image Category ${Date.now()}`,
+        image: TEST_CATEGORY_IMAGE,
         status: "published",
       })
       .expect(201);
@@ -341,10 +358,30 @@ describe("catalog API", () => {
     const patchResponse = await request(app)
       .patch(`/api/categories/${createResponse.body.id}`)
       .set(authHeader(body.accessToken))
-      .send({ image: "https://example.com/category.jpg" })
+      .send({ image: "https://example.com/category-updated.jpg" })
       .expect(200);
 
     assert.equal(patchResponse.body.status, "published");
+  });
+
+  it("rejects clearing category image on update", async () => {
+    const { body } = await registerAdmin(app);
+
+    const createResponse = await request(app)
+      .post("/api/categories")
+      .set(authHeader(body.accessToken))
+      .send({
+        name: `Protected Image Category ${Date.now()}`,
+        image: TEST_CATEGORY_IMAGE,
+        status: "published",
+      })
+      .expect(201);
+
+    await request(app)
+      .patch(`/api/categories/${createResponse.body.id}`)
+      .set(authHeader(body.accessToken))
+      .send({ image: "" })
+      .expect(400);
   });
 
   it("keeps product status when patching images only", async () => {
@@ -380,7 +417,11 @@ describe("catalog API", () => {
     await request(app)
       .post("/api/categories")
       .set(authHeader(body.accessToken))
-      .send({ name: `Test Category ${Date.now()}`, status: "published" })
+      .send({
+        name: `Test Category ${Date.now()}`,
+        image: TEST_CATEGORY_IMAGE,
+        status: "published",
+      })
       .expect(201);
 
     await request(app)
@@ -431,7 +472,11 @@ describe("catalog API", () => {
     const categoryResponse = await request(app)
       .post("/api/categories")
       .set(authHeader(body.accessToken))
-      .send({ name: `Blocked Category ${Date.now()}`, status: "published" })
+      .send({
+        name: `Blocked Category ${Date.now()}`,
+        image: TEST_CATEGORY_IMAGE,
+        status: "published",
+      })
       .expect(201);
 
     const categoryId = categoryResponse.body.id;
@@ -463,7 +508,11 @@ describe("catalog API", () => {
     const categoryResponse = await request(app)
       .post("/api/categories")
       .set(authHeader(body.accessToken))
-      .send({ name: `Empty Category ${Date.now()}`, status: "published" })
+      .send({
+        name: `Empty Category ${Date.now()}`,
+        image: TEST_CATEGORY_IMAGE,
+        status: "published",
+      })
       .expect(201);
 
     const categoryId = categoryResponse.body.id;
@@ -515,7 +564,11 @@ describe("catalog API", () => {
     const categoryResponse = await request(app)
       .post("/api/categories")
       .set(authHeader(body.accessToken))
-      .send({ name: `Original Category ${suffix}`, status: "published" })
+      .send({
+        name: `Original Category ${suffix}`,
+        image: TEST_CATEGORY_IMAGE,
+        status: "published",
+      })
       .expect(201);
 
     const categoryId = categoryResponse.body.id;

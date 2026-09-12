@@ -238,7 +238,8 @@ export interface CreateCategoryInput {
    * @maxLength 200
    */
   slug?: string;
-  image?: string;
+  /** @minLength 1 */
+  image: string;
   status?: CreateCategoryInputStatus;
 }
 
@@ -262,6 +263,7 @@ export interface UpdateCategoryInput {
    * @maxLength 200
    */
   slug?: string;
+  /** @minLength 1 */
   image?: string;
   status?: UpdateCategoryInputStatus;
 }
@@ -1637,7 +1639,8 @@ export type CreateCategoryBody = {
    * @maxLength 200
    */
   slug?: string;
-  image?: string;
+  /** @minLength 1 */
+  image: string;
   status?: CreateCategoryBodyStatus;
 };
 
@@ -1720,6 +1723,7 @@ export type UpdateCategoryBody = {
    * @maxLength 200
    */
   slug?: string;
+  /** @minLength 1 */
   image?: string;
   status?: UpdateCategoryBodyStatus;
 };

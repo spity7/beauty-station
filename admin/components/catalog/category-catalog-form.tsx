@@ -38,6 +38,13 @@ type CategoryCatalogFormProps = {
   mode: "add" | "edit";
 };
 
+function hasCategoryImage(
+  savedImageUrl: string,
+  pendingImageFile: File | null
+): boolean {
+  return Boolean(savedImageUrl.trim() || pendingImageFile);
+}
+
 export function CategoryCatalogForm({
   assignedProducts = [],
   initial,
@@ -91,45 +98,40 @@ export function CategoryCatalogForm({
     setPreviewUrl(URL.createObjectURL(file));
   }
 
-  function handleRemoveImage() {
-    if (pendingImageFile) {
-      revokeBlobPreviewUrl(previewUrl);
-      setPendingImageFile(null);
-    }
-    setSavedImageUrl("");
-    setPreviewUrl("");
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!hasCategoryImage(savedImageUrl, pendingImageFile)) {
+      setFormState({
+        error: "Category image is required",
+        loading: false,
+      });
+      return;
+    }
+
     setFormState({ error: null, loading: true });
 
-    const baseImage = savedImageUrl.trim();
-    let finalImage = baseImage;
+    let finalImage = savedImageUrl.trim();
     const uploadedInThisAttempt: string[] = [];
 
     try {
-      const basePayload = { name, image: baseImage, status };
-      let categoryId: string;
-
-      if (mode === "add") {
-        const created = await createCategoryApi(basePayload);
-        categoryId = created.id;
-      } else if (initial) {
-        await updateCategoryApi(initial.id, basePayload);
-        categoryId = initial.id;
-      } else {
-        throw new Error("Save failed");
-      }
-
       if (pendingImageFile) {
         finalImage = await uploadCatalogImage(pendingImageFile, "categories");
         uploadedInThisAttempt.push(finalImage);
-        await updateCategoryApi(categoryId, { image: finalImage });
         revokeBlobPreviewUrl(previewUrl);
         setPendingImageFile(null);
         setPreviewUrl(finalImage);
         setSavedImageUrl(finalImage);
+      }
+
+      const payload = { name, image: finalImage, status };
+
+      if (mode === "add") {
+        await createCategoryApi(payload);
+      } else if (initial) {
+        await updateCategoryApi(initial.id, payload);
+      } else {
+        throw new Error("Save failed");
       }
 
       await deleteHostedCatalogImages(
@@ -202,10 +204,12 @@ export function CategoryCatalogForm({
         <ThumbnailUploadCard
           alt={name || "Category thumbnail"}
           disabled={disabled}
-          onClear={handleRemoveImage}
+          error={fieldErrors.image}
+          help="A category thumbnail is required. Drag and drop a square PNG, JPG, or WebP image, or click to browse."
           onUpload={handleImageUpload}
           previewState={previewState}
           previewUrl={previewUrl}
+          required
         />
       </div>
       {mode === "edit" && initial ? (
